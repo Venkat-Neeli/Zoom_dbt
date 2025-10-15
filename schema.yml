@@ -1,0 +1,234 @@
+version: 2
+
+models:
+  - name: bz_users
+    description: "Bronze layer users data with basic cleansing"
+    columns:
+      - name: user_id
+        description: "Unique identifier for users"
+        tests:
+          - unique
+          - not_null
+      - name: user_name
+        description: "User display name"
+      - name: email
+        description: "User email address"
+        tests:
+          - not_null
+      - name: company
+        description: "User company"
+      - name: plan_type
+        description: "User subscription plan type"
+        tests:
+          - accepted_values:
+              values: ['Basic', 'Pro', 'Business', 'Enterprise']
+
+  - name: bz_meetings
+    description: "Bronze layer meetings data with basic cleansing"
+    columns:
+      - name: meeting_id
+        description: "Unique identifier for meetings"
+        tests:
+          - unique
+          - not_null
+      - name: host_id
+        description: "Meeting host user ID"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('bz_users')
+              field: user_id
+      - name: meeting_topic
+        description: "Meeting topic/title"
+      - name: start_time
+        description: "Meeting start timestamp"
+        tests:
+          - not_null
+      - name: end_time
+        description: "Meeting end timestamp"
+      - name: duration_minutes
+        description: "Meeting duration in minutes"
+
+  - name: bz_participants
+    description: "Bronze layer meeting participants data"
+    columns:
+      - name: participant_id
+        description: "Unique identifier for participants"
+        tests:
+          - unique
+          - not_null
+      - name: meeting_id
+        description: "Reference to meeting"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('bz_meetings')
+              field: meeting_id
+      - name: user_id
+        description: "Reference to user"
+        tests:
+          - relationships:
+              to: ref('bz_users')
+              field: user_id
+      - name: join_time
+        description: "Participant join timestamp"
+      - name: leave_time
+        description: "Participant leave timestamp"
+
+  - name: bz_feature_usage
+    description: "Bronze layer feature usage data"
+    columns:
+      - name: usage_id
+        description: "Unique identifier for usage records"
+        tests:
+          - unique
+          - not_null
+      - name: meeting_id
+        description: "Reference to meeting"
+        tests:
+          - relationships:
+              to: ref('bz_meetings')
+              field: meeting_id
+      - name: feature_name
+        description: "Name of the feature used"
+        tests:
+          - accepted_values:
+              values: ['Screen Share', 'Chat', 'Recording', 'Breakout Rooms', 'Whiteboard', 'Polls']
+      - name: usage_count
+        description: "Number of times feature was used"
+      - name: usage_date
+        description: "Date of feature usage"
+
+  - name: bz_webinars
+    description: "Bronze layer webinars data"
+    columns:
+      - name: webinar_id
+        description: "Unique identifier for webinars"
+        tests:
+          - unique
+          - not_null
+      - name: host_id
+        description: "Webinar host user ID"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('bz_users')
+              field: user_id
+      - name: webinar_topic
+        description: "Webinar topic/title"
+      - name: start_time
+        description: "Webinar start timestamp"
+        tests:
+          - not_null
+      - name: end_time
+        description: "Webinar end timestamp"
+      - name: registrants
+        description: "Number of webinar registrants"
+
+  - name: bz_support_tickets
+    description: "Bronze layer support tickets data"
+    columns:
+      - name: ticket_id
+        description: "Unique identifier for support tickets"
+        tests:
+          - unique
+          - not_null
+      - name: user_id
+        description: "Reference to user who created ticket"
+        tests:
+          - relationships:
+              to: ref('bz_users')
+              field: user_id
+      - name: ticket_type
+        description: "Type of support ticket"
+        tests:
+          - accepted_values:
+              values: ['Technical', 'Billing', 'Account', 'Feature Request', 'Bug Report']
+      - name: resolution_status
+        description: "Current status of ticket resolution"
+        tests:
+          - accepted_values:
+              values: ['Open', 'In Progress', 'Resolved', 'Closed', 'Escalated']
+      - name: open_date
+        description: "Date ticket was opened"
+        tests:
+          - not_null
+
+  - name: bz_licenses
+    description: "Bronze layer licenses data"
+    columns:
+      - name: license_id
+        description: "Unique identifier for licenses"
+        tests:
+          - unique
+          - not_null
+      - name: license_type
+        description: "Type of license"
+        tests:
+          - accepted_values:
+              values: ['Basic', 'Pro', 'Business', 'Enterprise', 'Developer']
+      - name: assigned_to_user_id
+        description: "User ID license is assigned to"
+        tests:
+          - relationships:
+              to: ref('bz_users')
+              field: user_id
+      - name: start_date
+        description: "License start date"
+        tests:
+          - not_null
+      - name: end_date
+        description: "License end date"
+
+  - name: bz_billing_events
+    description: "Bronze layer billing events data"
+    columns:
+      - name: event_id
+        description: "Unique identifier for billing events"
+        tests:
+          - unique
+          - not_null
+      - name: user_id
+        description: "Reference to user"
+        tests:
+          - relationships:
+              to: ref('bz_users')
+              field: user_id
+      - name: event_type
+        description: "Type of billing event"
+        tests:
+          - accepted_values:
+              values: ['Charge', 'Refund', 'Credit', 'Adjustment', 'Subscription']
+      - name: amount
+        description: "Billing amount"
+      - name: event_date
+        description: "Date of billing event"
+        tests:
+          - not_null
+
+  - name: bz_audit_log
+    description: "Bronze layer audit log data"
+    columns:
+      - name: record_id
+        description: "Unique identifier for audit records"
+        tests:
+          - unique
+          - not_null
+      - name: source_table
+        description: "Source table name"
+        tests:
+          - accepted_values:
+              values: ['users', 'meetings', 'participants', 'feature_usage', 'webinars', 'support_tickets', 'licenses', 'billing_events']
+      - name: load_timestamp
+        description: "Timestamp when record was loaded"
+        tests:
+          - not_null
+      - name: processed_by
+        description: "System/user that processed the record"
+      - name: processing_time
+        description: "Time taken to process the record"
+      - name: status
+        description: "Processing status"
+        tests:
+          - accepted_values:
+              values: ['Success', 'Failed', 'Partial', 'Skipped']
