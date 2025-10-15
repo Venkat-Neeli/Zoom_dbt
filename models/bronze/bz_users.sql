@@ -16,7 +16,7 @@ WITH source_data AS (
         load_timestamp,
         update_timestamp,
         source_system
-    FROM {{ source('raw_data', 'users') }}
+    FROM {{ source('RAW', 'users') }}
     WHERE user_id IS NOT NULL -- Basic data quality check
 ),
 
