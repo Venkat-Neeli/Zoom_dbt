@@ -1,0 +1,53 @@
+DQ CHECKS:
+# Completeness Checks
+Ensure key columns are not null:
+users: user_id, user_name, email
+meetings: meeting_id, host_id, meeting_topic, start_time, end_time
+participants: participant_id, meeting_id, user_id, join_time, leave_time
+... (same list as earlier).
+Ensure the empty strings ' ', get trim , or replace them with '000'.
+Report count and examples for each NULL violation.
+Referential Integrity Checks
+Verify all foreign keys exist in parent tables (meetings.host_id → users.user_id, participants.user_id → users.user_id, etc.). Report missing references and counts.
+ 
+# Validity & Format Checks
+Email regex validation: username@domain.tld. Report invalid format and count.
+start_time < end_time for meetings and webinars. Report violations.
+duration_minutes > 0, usage_count >= 0, registrants >= 0, amount > 0. Report violations with examples.
+Enumerations: resolution_status ∈ {Resolved, Pending, In Progress, Cancelled}, license_type ∈ {Basic, Pro, Enterprise}, plan_type ∈ {Basic, Pro, Enterprise}.
+ 
+# Uniqueness Checks
+Ensure unique primary/business keys: user_id, meeting_id, participant_id, usage_id, webinar_id, ticket_id, license_id, event_id. Report duplicates summary.
+ 
+# Deduplication Rules (NEW — apply these checks)
+Detect duplicate groups using business keys (use suggested keys).
+For each duplicate group, select the preferred row by: 1) highest update_timestamp (or load_timestamp), 2) then highest count of non-null columns, 3) then highest lexical primary key.
+4) recent occuring.
+Provide summary: number of duplicate groups, total duplicate rows, 3 example duplicate groups with full conflicting rows.
+Default action: Report-only (flag & report). If agent is run with auto_dedupe = true, remove duplicates and write cleaned model output (keeping only preferred rows)
+When auto-deduping, write an audit table silver.dedup_audit_<table> containing business_key, rows_before, rows_after, kept_row_id, kept_update_timestamp, dedupe_run_ts.
+Do not auto-remove duplicates that have legitimate distinct timestamps unless specifically allowed; flag them for manual review.
+ 
+# Logical Consistency Checks
+leave_time >= join_time for participants.
+end_time >= start_time for meetings/webinars.
+duration_minutes ≈ (end_time - start_time) in minutes (flag if difference > 1 minute).
+Each meeting must have ≥1 participant (report meetings with zero participants).
+ 
+# Metadata Checks
+load_timestamp and update_timestamp must be present. source_system must be in {Zoom, System}.
+Audit columns (load_date, update_date) must not be null.
+ 
+# Reporting
+For every check, output: table, rule, total failing rows, and up to 3 example rows.
+For dedup groups, output the group key and all rows in the group for the examples.
+If everything passes, respond: "All data quality and deduplication checks passed for Silver Layer."
+ 
+# Optional flags (agent can accept these):
+auto_dedupe — boolean (default false). If true, perform automated deduplication and create silver.dedup_audit_<table>.
+max_examples — integer (default 3) number of examples per issue.
+threshold_alert — if failing rows for a single rule exceed this percent of table rows, mark as HIGH_PRIORITY.
+ 
+# Safety / Governance
+Do not overwrite or delete raw or bronze data. Only write dedupe results to Silver schema or a dedicated audit schema.
+If any structural ambiguity exists (unclear business key), flag for human review instead of guessing.
