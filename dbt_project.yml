@@ -20,4 +20,3 @@ models:
   Zoom_Customer_Analytics:
     bronze:
       +materialized: table
-      +on_schema_change: "fail"
