@@ -1,0 +1,108 @@
+#### RAW STRUCTURE :
+
+--1. USERS (SOURCE ALIGNED)
+CREATE TABLE RAW.users (
+    user_id STRING,
+    user_name STRING,
+    email STRING,
+    company STRING,
+    plan_type STRING,
+    -- Metadata columns
+    load_timestamp TIMESTAMP_NTZ,
+    update_timestamp TIMESTAMP_NTZ,
+    source_system STRING
+);
+ 
+--2. MEETINGS (SOURCE ALIGNED)
+CREATE TABLE RAW.meetings (
+    meeting_id STRING,
+    host_id STRING,
+    meeting_topic STRING,
+    start_time TIMESTAMP_NTZ,
+    end_time TIMESTAMP_NTZ,
+    duration_minutes NUMBER,
+    -- Metadata columns
+    load_timestamp TIMESTAMP_NTZ,
+    update_timestamp TIMESTAMP_NTZ,
+    source_system STRING
+);
+ 
+--3. PARTICIPANTS (SOURCE ALIGNED)
+CREATE TABLE RAW.participants (
+    participant_id STRING,
+    meeting_id STRING,
+    user_id STRING,
+    join_time TIMESTAMP_NTZ,
+    leave_time TIMESTAMP_NTZ,
+    -- Metadata columns
+    load_timestamp TIMESTAMP_NTZ,
+    update_timestamp TIMESTAMP_NTZ,
+    source_system STRING
+);
+
+--4. FEATURE_USAGE (SOURCE ALIGNED) 
+CREATE TABLE RAW.feature_usage (
+    usage_id STRING,
+    meeting_id STRING,
+    feature_name STRING,
+    usage_count NUMBER,
+    usage_date DATE,
+    -- Metadata columns
+    load_timestamp TIMESTAMP_NTZ,
+    update_timestamp TIMESTAMP_NTZ,
+    source_system STRING
+);
+ 
+ 
+-- 5. WEBINARS TABLE (SOURCE ALIGNED)
+CREATE TABLE RAW.webinars (
+    webinar_id STRING,
+    host_id STRING,
+    webinar_topic STRING,
+    start_time TIMESTAMP_NTZ,
+    end_time TIMESTAMP_NTZ,
+    registrants NUMBER,
+    -- Metadata columns
+    load_timestamp TIMESTAMP_NTZ,
+    update_timestamp TIMESTAMP_NTZ,
+    source_system STRING
+);
+ 
+-- 6. SUPPORT TICKETS TABLE (SOURCE ALIGNED)
+CREATE TABLE RAW.support_tickets (
+    ticket_id STRING,
+    user_id STRING,
+    ticket_type STRING,
+    resolution_status STRING,
+    open_date DATE,
+    -- Metadata columns
+    load_timestamp TIMESTAMP_NTZ,
+    update_timestamp TIMESTAMP_NTZ,
+    source_system STRING
+);
+ 
+-- 7. LICENSES TABLE (SOURCE ALIGNED)
+CREATE TABLE RAW.licenses (
+    license_id STRING,
+    license_type STRING,
+    assigned_to_user_id STRING,
+    start_date DATE,
+    end_date DATE,
+    -- Metadata columns
+    load_timestamp TIMESTAMP_NTZ,
+    update_timestamp TIMESTAMP_NTZ,
+    source_system STRING
+);
+ 
+-- 8. BILLING EVENTS TABLE (SOURCE ALIGNED)
+CREATE TABLE RAW.billing_events (
+    event_id STRING,
+    user_id STRING,
+    event_type STRING,
+    amount NUMBER(10,2),
+    event_date DATE,
+    -- Metadata columns
+    load_timestamp TIMESTAMP_NTZ,
+    update_timestamp TIMESTAMP_NTZ,
+    source_system STRING
+);
