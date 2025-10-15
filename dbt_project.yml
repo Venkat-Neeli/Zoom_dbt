@@ -20,3 +20,17 @@ models:
   Zoom_Customer_Analytics:
     bronze:
       +materialized: table
+      +pre-hook: |
+        {% if this.name != 'bz_audit_log' %}
+          INSERT INTO {{ ref('bz_audit_log') }} (source_table, load_timestamp, processed_by, processing_time, status)
+          VALUES ('{{ this.name }}', CURRENT_TIMESTAMP(), 'DBT', 0, 'STARTED')
+        {% endif %}
+      +post-hook: |
+        {% if this.name != 'bz_audit_log' %}
+          UPDATE {{ ref('bz_audit_log') }}
+          SET status = 'COMPLETED',
+              processing_time = DATEDIFF('second', load_timestamp, CURRENT_TIMESTAMP())
+          WHERE source_table = '{{ this.name }}'
+            AND status = 'STARTED'
+            AND load_timestamp = (SELECT MAX(load_timestamp) FROM {{ ref('bz_audit_log') }} WHERE source_table = '{{ this.name }}' AND status = 'STARTED')
+        {% endif %}
