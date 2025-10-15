@@ -16,7 +16,7 @@ WITH source_data AS (
         load_timestamp,
         update_timestamp,
         source_system
-    FROM {{ source('raw_data', 'feature_usage') }}
+    FROM {{ source('RAW', 'feature_usage') }}
     WHERE usage_id IS NOT NULL -- Basic data quality check
 ),
 
