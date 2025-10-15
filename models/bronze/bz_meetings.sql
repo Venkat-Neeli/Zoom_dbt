@@ -17,7 +17,7 @@ WITH source_data AS (
         load_timestamp,
         update_timestamp,
         source_system
-    FROM {{ source('raw_data', 'meetings') }}
+    FROM {{ source('RAW', 'meetings') }}
     WHERE meeting_id IS NOT NULL -- Basic data quality check
 ),
 
