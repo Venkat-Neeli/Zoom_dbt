@@ -1,15 +1,12 @@
-{{ config(
-    materialized='table',
-    pre_hook="",
-    post_hook=""
-) }}
+{{ config(materialized='table') }}
 
--- Audit log table for tracking bronze layer processing
+-- Audit log table to track processing information
+-- This table must be created first to support audit logging in other models
 SELECT 
-    ROW_NUMBER() OVER (ORDER BY CURRENT_TIMESTAMP()) as record_id,
-    'AUDIT_LOG_INIT' as source_table,
+    1 as record_id,
+    'INITIAL_SETUP' as source_table,
     CURRENT_TIMESTAMP() as load_timestamp,
     'DBT_SYSTEM' as processed_by,
     0 as processing_time,
     'INITIALIZED' as status
-WHERE FALSE  -- This ensures no data is inserted during initial creation
+WHERE FALSE -- This ensures no actual data is inserted during initial creation
