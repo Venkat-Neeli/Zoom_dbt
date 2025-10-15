@@ -20,3 +20,12 @@ models:
   Zoom_Customer_Analytics:
     bronze:
       +materialized: table
+    silver:
+      +materialized: incremental
+      +on_schema_change: "fail"
+    gold:
+      +materialized: table
+
+vars:
+  start_date: '2020-01-01'
+  end_date: '2030-12-31'
