@@ -3,8 +3,8 @@
         materialized='incremental',
         unique_key='meeting_id',
         on_schema_change='fail',
-        pre_hook="INSERT INTO {{ ref('si_process_audit') }} (execution_id, pipeline_name, start_time, status, source_system, target_system, process_type, load_date, update_date) SELECT '{{ invocation_id }}', 'si_meetings_transform', current_timestamp(), 'STARTED', 'BRONZE', 'SILVER', 'ETL', current_date(), current_date() WHERE '{{ this.name }}' != 'si_process_audit'",
-        post_hook="INSERT INTO {{ ref('si_process_audit') }} (execution_id, pipeline_name, end_time, status, records_processed, source_system, target_system, process_type, load_date, update_date) SELECT '{{ invocation_id }}', 'si_meetings_transform', current_timestamp(), 'COMPLETED', (SELECT count(*) FROM {{ this }}), 'BRONZE', 'SILVER', 'ETL', current_date(), current_date() WHERE '{{ this.name }}' != 'si_process_audit'"
+        pre_hook="{% if this.name != 'si_process_audit' %}INSERT INTO {{ ref('si_process_audit') }} (execution_id, pipeline_name, start_time, status, source_system, target_system, process_type, load_date, update_date) SELECT '{{ invocation_id }}', 'si_meetings_transform', current_timestamp(), 'STARTED', 'BRONZE', 'SILVER', 'ETL', current_date(), current_date(){% endif %}",
+        post_hook="{% if this.name != 'si_process_audit' %}INSERT INTO {{ ref('si_process_audit') }} (execution_id, pipeline_name, end_time, status, records_processed, source_system, target_system, process_type, load_date, update_date) SELECT '{{ invocation_id }}', 'si_meetings_transform', current_timestamp(), 'COMPLETED', (SELECT count(*) FROM {{ this }}), 'BRONZE', 'SILVER', 'ETL', current_date(), current_date(){% endif %}"
     )
 }}
 
@@ -21,7 +21,7 @@ WITH bronze_meetings AS (
         update_timestamp,
         source_system,
         ROW_NUMBER() OVER (PARTITION BY meeting_id ORDER BY update_timestamp DESC, load_timestamp DESC) as rn
-    FROM {{ source('bronze', 'bz_meetings') }}
+    FROM {{ ref('bz_meetings') }}
     WHERE meeting_id IS NOT NULL
         AND host_id IS NOT NULL
         AND start_time IS NOT NULL
