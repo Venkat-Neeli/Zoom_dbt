@@ -4,6 +4,7 @@
     on_schema_change='fail'
 ) }}
 
+-- Data Quality Errors Table
 WITH error_data AS (
     SELECT 
         {{ dbt_utils.generate_surrogate_key(['current_timestamp()', 'source_table', 'error_type']) }} AS error_id,
@@ -45,5 +46,5 @@ SELECT
 FROM error_data
 
 {% if is_incremental() %}
-    WHERE error_timestamp > (SELECT MAX(error_timestamp) FROM {{ this }})
+    WHERE error_timestamp > (SELECT COALESCE(MAX(error_timestamp), '1900-01-01') FROM {{ this }})
 {% endif %}
