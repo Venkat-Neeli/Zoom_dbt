@@ -10,7 +10,7 @@ WITH audit_base AS (
         CURRENT_TIMESTAMP() AS start_time,
         CURRENT_TIMESTAMP() AS end_time,
         'SUCCESS' AS status,
-        NULL AS error_message,
+        CAST(NULL AS STRING) AS error_message,
         0 AS records_processed,
         0 AS records_successful,
         0 AS records_failed,
