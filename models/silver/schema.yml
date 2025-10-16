@@ -1,0 +1,98 @@
+version: 2
+
+sources:
+  - name: bronze
+    description: "Bronze layer containing raw data from source systems"
+    tables:
+      - name: bz_users
+        description: "Raw user data from Zoom"
+        columns:
+          - name: user_id
+            description: "Unique identifier for users"
+          - name: user_name
+            description: "User display name"
+          - name: email
+            description: "User email address"
+          - name: company
+            description: "User company name"
+          - name: plan_type
+            description: "User subscription plan type"
+          - name: load_timestamp
+            description: "Timestamp when record was loaded"
+          - name: update_timestamp
+            description: "Timestamp when record was last updated"
+          - name: source_system
+            description: "Source system identifier"
+      
+      - name: bz_meetings
+        description: "Raw meeting data from Zoom"
+      - name: bz_participants
+        description: "Raw participant data from Zoom"
+      - name: bz_feature_usage
+        description: "Raw feature usage data from Zoom"
+      - name: bz_webinars
+        description: "Raw webinar data from Zoom"
+      - name: bz_support_tickets
+        description: "Raw support ticket data from Zoom"
+      - name: bz_licenses
+        description: "Raw license data from Zoom"
+      - name: bz_billing_events
+        description: "Raw billing event data from Zoom"
+
+models:
+  - name: si_process_audit
+    description: "Process audit log for Silver layer transformations"
+    columns:
+      - name: execution_id
+        description: "Unique identifier for each execution"
+        tests:
+          - unique
+          - not_null
+      - name: pipeline_name
+        description: "Name of the ETL pipeline"
+        tests:
+          - not_null
+      - name: start_time
+        description: "Pipeline execution start time"
+        tests:
+          - not_null
+      - name: status
+        description: "Execution status (SUCCESS/FAILURE/RUNNING)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['SUCCESS', 'FAILURE', 'RUNNING']
+
+  - name: si_users
+    description: "Cleaned and transformed user data"
+    columns:
+      - name: user_id
+        description: "Unique identifier for users"
+        tests:
+          - unique
+          - not_null
+      - name: user_name
+        description: "User display name"
+        tests:
+          - not_null
+      - name: email
+        description: "User email address (validated and normalized)"
+        tests:
+          - not_null
+          - unique
+      - name: plan_type
+        description: "User subscription plan type"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Free', 'Pro', 'Business', 'Enterprise']
+      - name: data_quality_score
+        description: "Data quality score (0.0 to 1.0)"
+        tests:
+          - not_null
+      - name: record_status
+        description: "Record status (active/error)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['active', 'error']
