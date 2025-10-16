@@ -1,44 +1,57 @@
 {{ config(
     materialized='incremental',
     unique_key='ticket_id',
-    on_schema_change='fail',
-    pre_hook="INSERT INTO {{ ref('si_process_audit') }} (execution_id, pipeline_name, start_time, status, source_system, target_system, process_type, user_executed, load_date, update_date) SELECT '{{ dbt_utils.generate_surrogate_key(['invocation_id', 'si_support_tickets']) }}', 'si_support_tickets', CURRENT_TIMESTAMP(), 'RUNNING', 'BRONZE', 'SILVER', 'ETL', CURRENT_USER(), CURRENT_DATE(), CURRENT_DATE() WHERE '{{ this.name }}' != 'si_process_audit'",
-    post_hook="UPDATE {{ ref('si_process_audit') }} SET end_time = CURRENT_TIMESTAMP(), status = 'SUCCESS', records_processed = (SELECT COUNT(*) FROM {{ this }}), records_successful = (SELECT COUNT(*) FROM {{ this }} WHERE record_status = 'active'), processing_duration_seconds = DATEDIFF(second, start_time, CURRENT_TIMESTAMP()) WHERE execution_id = '{{ dbt_utils.generate_surrogate_key(['invocation_id', 'si_support_tickets']) }}' AND '{{ this.name }}' != 'si_process_audit'"
+    on_schema_change='fail'
 ) }}
 
+-- Silver Support Tickets Table Transformation
 WITH bronze_support_tickets AS (
-    SELECT *
-    FROM {{ source('bronze', 'bz_support_tickets') }}
-    {% if is_incremental() %}
-        WHERE update_timestamp > (SELECT MAX(update_timestamp) FROM {{ this }})
-    {% endif %}
-),
-
--- Data Quality and Deduplication
-cleaned_support_tickets AS (
-    SELECT *,
+    SELECT 
+        ticket_id,
+        user_id,
+        ticket_type,
+        resolution_status,
+        open_date,
+        load_timestamp,
+        update_timestamp,
+        source_system,
         ROW_NUMBER() OVER (
             PARTITION BY ticket_id 
             ORDER BY update_timestamp DESC, 
-                     load_timestamp DESC,
-                     CASE WHEN user_id IS NOT NULL THEN 1 ELSE 0 END +
-                     CASE WHEN ticket_type IS NOT NULL THEN 1 ELSE 0 END +
-                     CASE WHEN resolution_status IS NOT NULL THEN 1 ELSE 0 END +
-                     CASE WHEN open_date IS NOT NULL THEN 1 ELSE 0 END DESC,
-                     ticket_id DESC
+                     load_timestamp DESC
         ) AS row_num
-    FROM bronze_support_tickets
+    FROM {{ source('bronze', 'bz_support_tickets') }}
     WHERE ticket_id IS NOT NULL
-      AND user_id IS NOT NULL
-      AND ticket_type IS NOT NULL
-      AND ticket_type IN ('Audio Issue', 'Video Issue', 'Connectivity', 'Billing Inquiry', 'Feature Request', 'Account Access')
-      AND resolution_status IS NOT NULL
-      AND resolution_status IN ('Open', 'In Progress', 'Pending Customer', 'Closed', 'Resolved')
-      AND open_date IS NOT NULL
 ),
 
--- Calculate Data Quality Score
-final_support_tickets AS (
+data_quality_checks AS (
+    SELECT 
+        *,
+        -- Calculate data quality score
+        CASE 
+            WHEN ticket_id IS NULL THEN 0.0
+            WHEN user_id IS NULL THEN 0.2
+            WHEN ticket_type IS NULL OR TRIM(ticket_type) = '' THEN 0.3
+            WHEN ticket_type NOT IN ('Audio Issue', 'Video Issue', 'Connectivity', 'Billing Inquiry', 'Feature Request', 'Account Access') THEN 0.4
+            WHEN resolution_status IS NULL OR TRIM(resolution_status) = '' THEN 0.5
+            WHEN resolution_status NOT IN ('Open', 'In Progress', 'Pending Customer', 'Closed', 'Resolved') THEN 0.6
+            WHEN open_date IS NULL THEN 0.7
+            ELSE 1.0
+        END AS data_quality_score,
+        
+        -- Set record status
+        CASE 
+            WHEN ticket_id IS NULL OR user_id IS NULL 
+                 OR ticket_type IS NULL OR TRIM(ticket_type) = ''
+                 OR resolution_status IS NULL OR TRIM(resolution_status) = ''
+                 OR open_date IS NULL THEN 'error'
+            ELSE 'active'
+        END AS record_status
+    FROM bronze_support_tickets
+    WHERE row_num = 1
+),
+
+final_transform AS (
     SELECT 
         ticket_id,
         user_id,
@@ -49,7 +62,7 @@ final_support_tickets AS (
             WHEN UPPER(TRIM(ticket_type)) = 'BILLING INQUIRY' THEN 'Billing Inquiry'
             WHEN UPPER(TRIM(ticket_type)) = 'FEATURE REQUEST' THEN 'Feature Request'
             WHEN UPPER(TRIM(ticket_type)) = 'ACCOUNT ACCESS' THEN 'Account Access'
-            ELSE ticket_type
+            ELSE TRIM(ticket_type)
         END AS ticket_type,
         CASE 
             WHEN UPPER(TRIM(resolution_status)) = 'OPEN' THEN 'Open'
@@ -57,7 +70,7 @@ final_support_tickets AS (
             WHEN UPPER(TRIM(resolution_status)) = 'PENDING CUSTOMER' THEN 'Pending Customer'
             WHEN UPPER(TRIM(resolution_status)) = 'CLOSED' THEN 'Closed'
             WHEN UPPER(TRIM(resolution_status)) = 'RESOLVED' THEN 'Resolved'
-            ELSE resolution_status
+            ELSE TRIM(resolution_status)
         END AS resolution_status,
         open_date,
         load_timestamp,
@@ -65,16 +78,10 @@ final_support_tickets AS (
         source_system,
         DATE(load_timestamp) AS load_date,
         DATE(update_timestamp) AS update_date,
-        -- Data Quality Score Calculation
-        ROUND(
-            (CASE WHEN ticket_id IS NOT NULL THEN 0.25 ELSE 0 END +
-             CASE WHEN user_id IS NOT NULL THEN 0.25 ELSE 0 END +
-             CASE WHEN ticket_type IN ('Audio Issue', 'Video Issue', 'Connectivity', 'Billing Inquiry', 'Feature Request', 'Account Access') THEN 0.25 ELSE 0 END +
-             CASE WHEN resolution_status IN ('Open', 'In Progress', 'Pending Customer', 'Closed', 'Resolved') THEN 0.25 ELSE 0 END), 2
-        ) AS data_quality_score,
-        'active' AS record_status
-    FROM cleaned_support_tickets
-    WHERE row_num = 1
+        data_quality_score,
+        record_status
+    FROM data_quality_checks
+    WHERE record_status = 'active'  -- Only pass clean records to Silver
 )
 
 SELECT 
@@ -90,4 +97,8 @@ SELECT
     update_date,
     data_quality_score,
     record_status
-FROM final_support_tickets
+FROM final_transform
+
+{% if is_incremental() %}
+    WHERE update_timestamp > (SELECT COALESCE(MAX(update_timestamp), '1900-01-01') FROM {{ this }})
+{% endif %}
