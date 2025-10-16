@@ -24,3 +24,10 @@ models:
     silver:
       +materialized: incremental
       +on_schema_change: "fail"
+      +unique_key: "record_id"
+    gold:
+      +materialized: table
+
+vars:
+  start_date: '2020-01-01'
+  end_date: '2030-12-31'
