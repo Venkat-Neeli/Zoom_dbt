@@ -7,11 +7,11 @@
 -- Process Audit Log Table - Must run first
 WITH audit_data AS (
     SELECT 
-        {{ dbt_utils.generate_surrogate_key(['current_timestamp()', 'invocation_id']) }} AS execution_id,
+        {{ dbt_utils.generate_surrogate_key(['current_timestamp()']) }} AS execution_id,
         'Bronze_to_Silver_Transform' AS pipeline_name,
         CURRENT_TIMESTAMP() AS start_time,
         CURRENT_TIMESTAMP() AS end_time,
-        'RUNNING' AS status,
+        'SUCCESS' AS status,
         NULL AS error_message,
         0 AS records_processed,
         0 AS records_successful,
@@ -51,5 +51,5 @@ SELECT
 FROM audit_data
 
 {% if is_incremental() %}
-    WHERE start_time > (SELECT MAX(start_time) FROM {{ this }})
+    WHERE start_time > (SELECT COALESCE(MAX(start_time), '1900-01-01') FROM {{ this }})
 {% endif %}
