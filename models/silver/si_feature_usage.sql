@@ -1,87 +1,102 @@
 {{ config(
     materialized='incremental',
     unique_key='usage_id',
-    on_schema_change='fail'
+    on_schema_change='sync_all_columns',
+    tags=['silver', 'feature_usage'],
+    pre_hook="INSERT INTO {{ ref('si_process_audit') }} (execution_id, pipeline_name, start_time, status, source_system, target_system, process_type, load_date, update_date) SELECT '{{ invocation_id }}' || '_feature_usage_start', 'si_feature_usage_transform', CURRENT_TIMESTAMP(), 'STARTED', 'BRONZE', 'SILVER', 'ETL', CURRENT_DATE(), CURRENT_DATE() WHERE '{{ this.name }}' != 'si_process_audit'",
+    post_hook="INSERT INTO {{ ref('si_process_audit') }} (execution_id, pipeline_name, end_time, status, records_processed, source_system, target_system, process_type, load_date, update_date) SELECT '{{ invocation_id }}' || '_feature_usage_end', 'si_feature_usage_transform', CURRENT_TIMESTAMP(), 'COMPLETED', (SELECT COUNT(*) FROM {{ this }}), 'BRONZE', 'SILVER', 'ETL', CURRENT_DATE(), CURRENT_DATE() WHERE '{{ this.name }}' != 'si_process_audit'"
 ) }}
 
 WITH bronze_feature_usage AS (
-    SELECT *
-    FROM {{ source('bronze', 'bz_feature_usage') }}
-    {% if is_incremental() %}
-        WHERE update_timestamp > (SELECT MAX(update_timestamp) FROM {{ this }})
-    {% endif %}
-),
-
--- Data Quality and Deduplication
-deduped_feature_usage AS (
-    SELECT *,
+    SELECT 
+        usage_id,
+        meeting_id,
+        feature_name,
+        usage_count,
+        usage_date,
+        load_timestamp,
+        update_timestamp,
+        source_system,
         ROW_NUMBER() OVER (
             PARTITION BY usage_id 
             ORDER BY update_timestamp DESC, 
                      load_timestamp DESC,
-                     CASE WHEN meeting_id IS NOT NULL THEN 1 ELSE 0 END +
-                     CASE WHEN feature_name IS NOT NULL THEN 1 ELSE 0 END +
-                     CASE WHEN usage_count IS NOT NULL THEN 1 ELSE 0 END +
-                     CASE WHEN usage_date IS NOT NULL THEN 1 ELSE 0 END DESC
+                     CASE WHEN usage_count IS NOT NULL THEN 1 ELSE 0 END DESC
         ) AS row_rank
-    FROM bronze_feature_usage
+    FROM {{ source('bronze', 'bz_feature_usage') }}
+    WHERE usage_id IS NOT NULL
 ),
 
--- Data Quality Checks and Transformations
-transformed_feature_usage AS (
-    SELECT
+deduped_feature_usage AS (
+    SELECT *
+    FROM bronze_feature_usage
+    WHERE row_rank = 1
+),
+
+data_quality_checks AS (
+    SELECT 
         usage_id,
         meeting_id,
         CASE 
-            WHEN feature_name IN ('Screen Sharing', 'Chat', 'Recording', 'Whiteboard', 'Virtual Background') THEN feature_name
-            ELSE 'Other'
-        END AS feature_name,
+            WHEN UPPER(TRIM(feature_name)) IN ('SCREEN SHARING', 'CHAT', 'RECORDING', 'WHITEBOARD', 'VIRTUAL BACKGROUND') 
+            THEN UPPER(TRIM(feature_name))
+            ELSE 'OTHER'
+        END AS feature_name_clean,
+        usage_count,
+        usage_date,
+        load_timestamp,
+        update_timestamp,
+        source_system,
+        -- Data Quality Score Calculation
         CASE 
-            WHEN usage_count < 0 THEN 0
-            ELSE usage_count
-        END AS usage_count,
+            WHEN usage_id IS NOT NULL 
+                AND meeting_id IS NOT NULL
+                AND feature_name IS NOT NULL
+                AND usage_count IS NOT NULL AND usage_count >= 0
+                AND usage_date IS NOT NULL
+            THEN 1.00
+            WHEN usage_id IS NOT NULL 
+                AND meeting_id IS NOT NULL
+                AND feature_name IS NOT NULL
+            THEN 0.75
+            WHEN usage_id IS NOT NULL 
+                AND meeting_id IS NOT NULL
+            THEN 0.50
+            ELSE 0.25
+        END AS data_quality_score,
+        -- Record Status
+        CASE 
+            WHEN usage_id IS NOT NULL 
+                AND meeting_id IS NOT NULL
+                AND feature_name IS NOT NULL
+                AND usage_count IS NOT NULL AND usage_count >= 0
+                AND usage_date IS NOT NULL
+            THEN 'ACTIVE'
+            ELSE 'ERROR'
+        END AS record_status
+    FROM deduped_feature_usage
+),
+
+final_transform AS (
+    SELECT 
+        usage_id,
+        meeting_id,
+        feature_name_clean AS feature_name,
+        usage_count,
         usage_date,
         load_timestamp,
         update_timestamp,
         source_system,
         DATE(load_timestamp) AS load_date,
         DATE(update_timestamp) AS update_date,
-        
-        -- Data Quality Score Calculation
-        CASE 
-            WHEN usage_id IS NULL OR meeting_id IS NULL OR feature_name IS NULL OR usage_count IS NULL OR usage_date IS NULL THEN 0.0
-            WHEN usage_count < 0 THEN 0.5
-            WHEN feature_name NOT IN ('Screen Sharing', 'Chat', 'Recording', 'Whiteboard', 'Virtual Background') THEN 0.7
-            ELSE 1.0
-        END AS data_quality_score,
-        
-        -- Record Status
-        CASE 
-            WHEN usage_id IS NULL OR meeting_id IS NULL OR feature_name IS NULL OR usage_count IS NULL OR usage_date IS NULL THEN 'error'
-            ELSE 'active'
-        END AS record_status
-        
-    FROM deduped_feature_usage
-    WHERE row_rank = 1
+        data_quality_score,
+        record_status
+    FROM data_quality_checks
+    WHERE record_status = 'ACTIVE'
 )
 
-SELECT 
-    usage_id,
-    meeting_id,
-    feature_name,
-    usage_count,
-    usage_date,
-    load_timestamp,
-    update_timestamp,
-    source_system,
-    load_date,
-    update_date,
-    data_quality_score,
-    record_status
-FROM transformed_feature_usage
-WHERE record_status = 'active'
-  AND usage_id IS NOT NULL
-  AND meeting_id IS NOT NULL
-  AND feature_name IS NOT NULL
-  AND usage_count IS NOT NULL
-  AND usage_date IS NOT NULL
+SELECT * FROM final_transform
+
+{% if is_incremental() %}
+    WHERE update_timestamp > (SELECT COALESCE(MAX(update_timestamp), '1900-01-01') FROM {{ this }})
+{% endif %}
