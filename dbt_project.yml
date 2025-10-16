@@ -23,6 +23,7 @@ models:
     silver:
       +materialized: incremental
       +on_schema_change: "fail"
+      +incremental_strategy: "merge"
     gold:
       +materialized: table
 
