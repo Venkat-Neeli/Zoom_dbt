@@ -110,3 +110,198 @@ models:
           - dbt_expectations.expect_column_values_to_be_between:
               min_value: 0
               max_value: 1440
+
+  - name: si_participants
+    description: "Cleaned and transformed participant data"
+    columns:
+      - name: participant_id
+        description: "Unique identifier for participants"
+        tests:
+          - not_null
+          - unique
+      - name: meeting_id
+        description: "Associated meeting ID"
+        tests:
+          - not_null
+      - name: data_quality_score
+        description: "Data quality score (0.0 to 1.0)"
+        tests:
+          - not_null
+      - name: record_status
+        description: "Record status"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['active', 'error']
+
+  - name: si_feature_usage
+    description: "Cleaned and transformed feature usage data"
+    columns:
+      - name: usage_id
+        description: "Unique identifier for usage records"
+        tests:
+          - not_null
+          - unique
+      - name: feature_name
+        description: "Name of the feature used"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Screen Sharing', 'Chat', 'Recording', 'Whiteboard', 'Virtual Background']
+      - name: usage_count
+        description: "Number of times feature was used"
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+      - name: data_quality_score
+        description: "Data quality score (0.0 to 1.0)"
+        tests:
+          - not_null
+      - name: record_status
+        description: "Record status"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['active', 'error']
+
+  - name: si_webinars
+    description: "Cleaned and transformed webinar data"
+    columns:
+      - name: webinar_id
+        description: "Unique identifier for webinars"
+        tests:
+          - not_null
+          - unique
+      - name: registrants
+        description: "Number of webinar registrants"
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+      - name: data_quality_score
+        description: "Data quality score (0.0 to 1.0)"
+        tests:
+          - not_null
+      - name: record_status
+        description: "Record status"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['active', 'error']
+
+  - name: si_support_tickets
+    description: "Cleaned and transformed support ticket data"
+    columns:
+      - name: ticket_id
+        description: "Unique identifier for support tickets"
+        tests:
+          - not_null
+          - unique
+      - name: ticket_type
+        description: "Type of support ticket"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Audio Issue', 'Video Issue', 'Connectivity', 'Billing Inquiry', 'Feature Request', 'Account Access']
+      - name: resolution_status
+        description: "Current resolution status"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Open', 'In Progress', 'Pending Customer', 'Closed', 'Resolved']
+      - name: data_quality_score
+        description: "Data quality score (0.0 to 1.0)"
+        tests:
+          - not_null
+      - name: record_status
+        description: "Record status"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['active', 'error']
+
+  - name: si_licenses
+    description: "Cleaned and transformed license data"
+    columns:
+      - name: license_id
+        description: "Unique identifier for licenses"
+        tests:
+          - not_null
+          - unique
+      - name: license_type
+        description: "Type of license"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Pro', 'Business', 'Enterprise', 'Education']
+      - name: data_quality_score
+        description: "Data quality score (0.0 to 1.0)"
+        tests:
+          - not_null
+      - name: record_status
+        description: "Record status"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['active', 'error']
+
+  - name: si_billing_events
+    description: "Cleaned and transformed billing event data"
+    columns:
+      - name: event_id
+        description: "Unique identifier for billing events"
+        tests:
+          - not_null
+          - unique
+      - name: event_type
+        description: "Type of billing event"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Subscription Fee', 'Subscription Renewal', 'Add-on Purchase', 'Refund']
+      - name: amount
+        description: "Billing amount"
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+      - name: data_quality_score
+        description: "Data quality score (0.0 to 1.0)"
+        tests:
+          - not_null
+      - name: record_status
+        description: "Record status"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['active', 'error']
+
+  - name: si_data_quality_errors
+    description: "Data quality error tracking table"
+    columns:
+      - name: error_id
+        description: "Unique identifier for errors"
+        tests:
+          - not_null
+          - unique
+      - name: source_table
+        description: "Source table where error occurred"
+        tests:
+          - not_null
+      - name: error_type
+        description: "Type of data quality error"
+        tests:
+          - not_null
+      - name: severity_level
+        description: "Error severity level"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
+      - name: resolution_status
+        description: "Error resolution status"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED']
