@@ -1,9 +1,7 @@
 {{ config(
     materialized='incremental',
     unique_key='user_id',
-    on_schema_change='fail',
-    pre_hook="INSERT INTO {{ ref('si_process_audit') }} (execution_id, pipeline_name, start_time, status, source_system, target_system, process_type, load_date, update_date) SELECT '{{ invocation_id }}' || '_users', 'si_users_transform', CURRENT_TIMESTAMP(), 'STARTED', 'BRONZE', 'SILVER', 'ETL', CURRENT_DATE(), CURRENT_DATE() WHERE '{{ this.name }}' != 'si_process_audit'",
-    post_hook="UPDATE {{ ref('si_process_audit') }} SET end_time = CURRENT_TIMESTAMP(), status = 'SUCCESS', records_processed = (SELECT COUNT(*) FROM {{ this }}), records_successful = (SELECT COUNT(*) FROM {{ this }} WHERE record_status = 'active'), processing_duration_seconds = DATEDIFF('second', start_time, CURRENT_TIMESTAMP()) WHERE execution_id = '{{ invocation_id }}' || '_users' AND '{{ this.name }}' != 'si_process_audit'"
+    on_schema_change='fail'
 ) }}
 
 -- Silver Users Table Transformation
@@ -89,5 +87,5 @@ SELECT
 FROM final_transform
 
 {% if is_incremental() %}
-    WHERE update_timestamp > (SELECT MAX(update_timestamp) FROM {{ this }})
+    WHERE update_timestamp > (SELECT COALESCE(MAX(update_timestamp), '1900-01-01') FROM {{ this }})
 {% endif %}
