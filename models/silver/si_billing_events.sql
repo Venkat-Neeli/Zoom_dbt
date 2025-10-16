@@ -1,87 +1,102 @@
 {{ config(
     materialized='incremental',
     unique_key='event_id',
-    on_schema_change='fail'
+    on_schema_change='sync_all_columns',
+    tags=['silver', 'billing_events'],
+    pre_hook="INSERT INTO {{ ref('si_process_audit') }} (execution_id, pipeline_name, start_time, status, source_system, target_system, process_type, load_date, update_date) SELECT '{{ invocation_id }}' || '_billing_events_start', 'si_billing_events_transform', CURRENT_TIMESTAMP(), 'STARTED', 'BRONZE', 'SILVER', 'ETL', CURRENT_DATE(), CURRENT_DATE() WHERE '{{ this.name }}' != 'si_process_audit'",
+    post_hook="INSERT INTO {{ ref('si_process_audit') }} (execution_id, pipeline_name, end_time, status, records_processed, source_system, target_system, process_type, load_date, update_date) SELECT '{{ invocation_id }}' || '_billing_events_end', 'si_billing_events_transform', CURRENT_TIMESTAMP(), 'COMPLETED', (SELECT COUNT(*) FROM {{ this }}), 'BRONZE', 'SILVER', 'ETL', CURRENT_DATE(), CURRENT_DATE() WHERE '{{ this.name }}' != 'si_process_audit'"
 ) }}
 
 WITH bronze_billing_events AS (
-    SELECT *
-    FROM {{ source('bronze', 'bz_billing_events') }}
-    {% if is_incremental() %}
-        WHERE update_timestamp > (SELECT MAX(update_timestamp) FROM {{ this }})
-    {% endif %}
-),
-
--- Data Quality and Deduplication
-deduped_billing_events AS (
-    SELECT *,
+    SELECT 
+        event_id,
+        user_id,
+        event_type,
+        amount,
+        event_date,
+        load_timestamp,
+        update_timestamp,
+        source_system,
         ROW_NUMBER() OVER (
             PARTITION BY event_id 
             ORDER BY update_timestamp DESC, 
                      load_timestamp DESC,
-                     CASE WHEN user_id IS NOT NULL THEN 1 ELSE 0 END +
-                     CASE WHEN event_type IS NOT NULL THEN 1 ELSE 0 END +
-                     CASE WHEN amount IS NOT NULL THEN 1 ELSE 0 END +
-                     CASE WHEN event_date IS NOT NULL THEN 1 ELSE 0 END DESC
+                     CASE WHEN amount IS NOT NULL THEN 1 ELSE 0 END DESC
         ) AS row_rank
-    FROM bronze_billing_events
+    FROM {{ source('bronze', 'bz_billing_events') }}
+    WHERE event_id IS NOT NULL
 ),
 
--- Data Quality Checks and Transformations
-transformed_billing_events AS (
-    SELECT
+deduped_billing_events AS (
+    SELECT *
+    FROM bronze_billing_events
+    WHERE row_rank = 1
+),
+
+data_quality_checks AS (
+    SELECT 
         event_id,
         user_id,
         CASE 
-            WHEN event_type IN ('Subscription Fee', 'Subscription Renewal', 'Add-on Purchase', 'Refund') THEN event_type
-            ELSE 'Other'
-        END AS event_type,
+            WHEN UPPER(TRIM(event_type)) IN ('SUBSCRIPTION FEE', 'SUBSCRIPTION RENEWAL', 'ADD-ON PURCHASE', 'REFUND') 
+            THEN UPPER(TRIM(event_type))
+            ELSE 'OTHER'
+        END AS event_type_clean,
+        amount,
+        event_date,
+        load_timestamp,
+        update_timestamp,
+        source_system,
+        -- Data Quality Score Calculation
         CASE 
-            WHEN amount < 0 THEN 0
-            ELSE amount
-        END AS amount,
+            WHEN event_id IS NOT NULL 
+                AND user_id IS NOT NULL
+                AND event_type IS NOT NULL
+                AND amount IS NOT NULL AND amount >= 0
+                AND event_date IS NOT NULL
+            THEN 1.00
+            WHEN event_id IS NOT NULL 
+                AND user_id IS NOT NULL
+                AND event_type IS NOT NULL
+            THEN 0.75
+            WHEN event_id IS NOT NULL 
+                AND user_id IS NOT NULL
+            THEN 0.50
+            ELSE 0.25
+        END AS data_quality_score,
+        -- Record Status
+        CASE 
+            WHEN event_id IS NOT NULL 
+                AND user_id IS NOT NULL
+                AND event_type IS NOT NULL
+                AND amount IS NOT NULL AND amount >= 0
+                AND event_date IS NOT NULL
+            THEN 'ACTIVE'
+            ELSE 'ERROR'
+        END AS record_status
+    FROM deduped_billing_events
+),
+
+final_transform AS (
+    SELECT 
+        event_id,
+        user_id,
+        event_type_clean AS event_type,
+        amount,
         event_date,
         load_timestamp,
         update_timestamp,
         source_system,
         DATE(load_timestamp) AS load_date,
         DATE(update_timestamp) AS update_date,
-        
-        -- Data Quality Score Calculation
-        CASE 
-            WHEN event_id IS NULL OR user_id IS NULL OR event_type IS NULL OR amount IS NULL OR event_date IS NULL THEN 0.0
-            WHEN amount < 0 THEN 0.5
-            WHEN event_type NOT IN ('Subscription Fee', 'Subscription Renewal', 'Add-on Purchase', 'Refund') THEN 0.7
-            ELSE 1.0
-        END AS data_quality_score,
-        
-        -- Record Status
-        CASE 
-            WHEN event_id IS NULL OR user_id IS NULL OR event_type IS NULL OR amount IS NULL OR event_date IS NULL THEN 'error'
-            ELSE 'active'
-        END AS record_status
-        
-    FROM deduped_billing_events
-    WHERE row_rank = 1
+        data_quality_score,
+        record_status
+    FROM data_quality_checks
+    WHERE record_status = 'ACTIVE'
 )
 
-SELECT 
-    event_id,
-    user_id,
-    event_type,
-    amount,
-    event_date,
-    load_timestamp,
-    update_timestamp,
-    source_system,
-    load_date,
-    update_date,
-    data_quality_score,
-    record_status
-FROM transformed_billing_events
-WHERE record_status = 'active'
-  AND event_id IS NOT NULL
-  AND user_id IS NOT NULL
-  AND event_type IS NOT NULL
-  AND amount IS NOT NULL
-  AND event_date IS NOT NULL
+SELECT * FROM final_transform
+
+{% if is_incremental() %}
+    WHERE update_timestamp > (SELECT COALESCE(MAX(update_timestamp), '1900-01-01') FROM {{ this }})
+{% endif %}
