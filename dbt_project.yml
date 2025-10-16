@@ -18,13 +18,14 @@ clean-targets:
 
 models:
   Zoom_Customer_Analytics:
-    +materialized: table
+    +materialized: incremental
+    +on_schema_change: sync_all_columns
     bronze:
       +materialized: table
     silver:
       +materialized: incremental
-      +on_schema_change: "fail"
-      +unique_key: "record_id"
+      +unique_key: "{{ var('unique_key', 'id') }}"
+      +on_schema_change: sync_all_columns
     gold:
       +materialized: table
 
