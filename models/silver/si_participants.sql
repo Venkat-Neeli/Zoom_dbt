@@ -1,42 +1,53 @@
 {{ config(
     materialized='incremental',
     unique_key='participant_id',
-    on_schema_change='fail',
-    pre_hook="INSERT INTO {{ ref('si_process_audit') }} (execution_id, pipeline_name, start_time, status, source_system, target_system, process_type, user_executed, load_date, update_date) SELECT '{{ dbt_utils.generate_surrogate_key(['invocation_id', 'si_participants']) }}', 'si_participants', CURRENT_TIMESTAMP(), 'RUNNING', 'BRONZE', 'SILVER', 'ETL', CURRENT_USER(), CURRENT_DATE(), CURRENT_DATE() WHERE '{{ this.name }}' != 'si_process_audit'",
-    post_hook="UPDATE {{ ref('si_process_audit') }} SET end_time = CURRENT_TIMESTAMP(), status = 'SUCCESS', records_processed = (SELECT COUNT(*) FROM {{ this }}), records_successful = (SELECT COUNT(*) FROM {{ this }} WHERE record_status = 'active'), processing_duration_seconds = DATEDIFF(second, start_time, CURRENT_TIMESTAMP()) WHERE execution_id = '{{ dbt_utils.generate_surrogate_key(['invocation_id', 'si_participants']) }}' AND '{{ this.name }}' != 'si_process_audit'"
+    on_schema_change='fail'
 ) }}
 
+-- Silver Participants Table Transformation
 WITH bronze_participants AS (
-    SELECT *
-    FROM {{ source('bronze', 'bz_participants') }}
-    {% if is_incremental() %}
-        WHERE update_timestamp > (SELECT MAX(update_timestamp) FROM {{ this }})
-    {% endif %}
-),
-
--- Data Quality and Deduplication
-cleaned_participants AS (
-    SELECT *,
+    SELECT 
+        participant_id,
+        meeting_id,
+        user_id,
+        join_time,
+        leave_time,
+        load_timestamp,
+        update_timestamp,
+        source_system,
         ROW_NUMBER() OVER (
             PARTITION BY participant_id 
             ORDER BY update_timestamp DESC, 
-                     load_timestamp DESC,
-                     CASE WHEN meeting_id IS NOT NULL THEN 1 ELSE 0 END +
-                     CASE WHEN user_id IS NOT NULL THEN 1 ELSE 0 END +
-                     CASE WHEN join_time IS NOT NULL THEN 1 ELSE 0 END +
-                     CASE WHEN leave_time IS NOT NULL THEN 1 ELSE 0 END DESC,
-                     participant_id DESC
+                     load_timestamp DESC
         ) AS row_num
-    FROM bronze_participants
+    FROM {{ source('bronze', 'bz_participants') }}
     WHERE participant_id IS NOT NULL
-      AND meeting_id IS NOT NULL
-      AND join_time IS NOT NULL
-      AND leave_time IS NOT NULL
-      AND leave_time > join_time
 ),
 
--- Calculate Data Quality Score
-final_participants AS (
+data_quality_checks AS (
+    SELECT 
+        *,
+        -- Calculate data quality score
+        CASE 
+            WHEN participant_id IS NULL THEN 0.0
+            WHEN meeting_id IS NULL THEN 0.2
+            WHEN join_time IS NULL OR leave_time IS NULL THEN 0.3
+            WHEN leave_time <= join_time THEN 0.4
+            ELSE 1.0
+        END AS data_quality_score,
+        
+        -- Set record status
+        CASE 
+            WHEN participant_id IS NULL OR meeting_id IS NULL 
+                 OR join_time IS NULL OR leave_time IS NULL 
+                 OR leave_time <= join_time THEN 'error'
+            ELSE 'active'
+        END AS record_status
+    FROM bronze_participants
+    WHERE row_num = 1
+),
+
+final_transform AS (
     SELECT 
         participant_id,
         meeting_id,
@@ -48,16 +59,10 @@ final_participants AS (
         source_system,
         DATE(load_timestamp) AS load_date,
         DATE(update_timestamp) AS update_date,
-        -- Data Quality Score Calculation
-        ROUND(
-            (CASE WHEN participant_id IS NOT NULL THEN 0.25 ELSE 0 END +
-             CASE WHEN meeting_id IS NOT NULL THEN 0.25 ELSE 0 END +
-             CASE WHEN join_time IS NOT NULL THEN 0.25 ELSE 0 END +
-             CASE WHEN leave_time IS NOT NULL AND leave_time > join_time THEN 0.25 ELSE 0 END), 2
-        ) AS data_quality_score,
-        'active' AS record_status
-    FROM cleaned_participants
-    WHERE row_num = 1
+        data_quality_score,
+        record_status
+    FROM data_quality_checks
+    WHERE record_status = 'active'  -- Only pass clean records to Silver
 )
 
 SELECT 
@@ -73,4 +78,8 @@ SELECT
     update_date,
     data_quality_score,
     record_status
-FROM final_participants
+FROM final_transform
+
+{% if is_incremental() %}
+    WHERE update_timestamp > (SELECT COALESCE(MAX(update_timestamp), '1900-01-01') FROM {{ this }})
+{% endif %}
