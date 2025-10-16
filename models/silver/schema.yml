@@ -1,0 +1,173 @@
+version: 2
+
+sources:
+  - name: bronze
+    description: "Bronze layer containing raw data from various Zoom systems"
+    tables:
+      - name: bz_users
+        description: "Raw user data from Zoom systems"
+        columns:
+          - name: user_id
+            description: "Unique identifier for users"
+            tests:
+              - not_null
+              - unique
+          - name: user_name
+            description: "User display name"
+          - name: email
+            description: "User email address"
+          - name: company
+            description: "User company name"
+          - name: plan_type
+            description: "User subscription plan type"
+          - name: load_timestamp
+            description: "Timestamp when record was loaded"
+          - name: update_timestamp
+            description: "Timestamp when record was last updated"
+          - name: source_system
+            description: "Source system identifier"
+
+      - name: bz_meetings
+        description: "Raw meeting data from Zoom systems"
+        columns:
+          - name: meeting_id
+            description: "Unique identifier for meetings"
+            tests:
+              - not_null
+              - unique
+          - name: host_id
+            description: "Meeting host user ID"
+          - name: meeting_topic
+            description: "Meeting topic/title"
+          - name: start_time
+            description: "Meeting start timestamp"
+          - name: end_time
+            description: "Meeting end timestamp"
+          - name: duration_minutes
+            description: "Meeting duration in minutes"
+          - name: load_timestamp
+            description: "Timestamp when record was loaded"
+          - name: update_timestamp
+            description: "Timestamp when record was last updated"
+          - name: source_system
+            description: "Source system identifier"
+
+models:
+  - name: si_process_audit
+    description: "Process audit table for tracking ETL execution metrics"
+    columns:
+      - name: execution_id
+        description: "Unique identifier for each execution"
+        tests:
+          - not_null
+          - unique
+      - name: pipeline_name
+        description: "Name of the ETL pipeline"
+        tests:
+          - not_null
+      - name: start_time
+        description: "Process start timestamp"
+      - name: end_time
+        description: "Process end timestamp"
+      - name: status
+        description: "Execution status (SUCCESS/FAILURE/RUNNING)"
+        tests:
+          - not_null
+      - name: records_processed
+        description: "Total number of records processed"
+      - name: source_system
+        description: "Source system identifier"
+      - name: target_system
+        description: "Target system identifier"
+      - name: process_type
+        description: "Type of process (ETL/Validation)"
+      - name: load_date
+        description: "Date when record was created"
+      - name: update_date
+        description: "Date when record was last updated"
+
+  - name: si_users
+    description: "Silver layer users table with cleaned and validated data"
+    columns:
+      - name: user_id
+        description: "Unique identifier for users"
+        tests:
+          - not_null
+          - unique
+      - name: user_name
+        description: "Cleaned user display name"
+        tests:
+          - not_null
+      - name: email
+        description: "Validated and normalized email address"
+        tests:
+          - not_null
+          - unique
+      - name: company
+        description: "Cleaned company name"
+      - name: plan_type
+        description: "Standardized subscription plan type"
+        tests:
+          - accepted_values:
+              values: ['Free', 'Pro', 'Business', 'Enterprise']
+      - name: load_timestamp
+        description: "Original load timestamp from bronze"
+      - name: update_timestamp
+        description: "Original update timestamp from bronze"
+      - name: source_system
+        description: "Source system identifier"
+      - name: load_date
+        description: "Date derived from load_timestamp"
+      - name: update_date
+        description: "Date derived from update_timestamp"
+      - name: data_quality_score
+        description: "Data quality score (0.0-1.0)"
+      - name: record_status
+        description: "Record status (active/error)"
+        tests:
+          - accepted_values:
+              values: ['active', 'error']
+
+  - name: si_meetings
+    description: "Silver layer meetings table with cleaned and validated data"
+    columns:
+      - name: meeting_id
+        description: "Unique identifier for meetings"
+        tests:
+          - not_null
+          - unique
+      - name: host_id
+        description: "Meeting host user ID"
+        tests:
+          - not_null
+      - name: meeting_topic
+        description: "Cleaned meeting topic/title"
+      - name: start_time
+        description: "Meeting start timestamp"
+        tests:
+          - not_null
+      - name: end_time
+        description: "Meeting end timestamp"
+        tests:
+          - not_null
+      - name: duration_minutes
+        description: "Meeting duration in minutes"
+        tests:
+          - not_null
+      - name: load_timestamp
+        description: "Original load timestamp from bronze"
+      - name: update_timestamp
+        description: "Original update timestamp from bronze"
+      - name: source_system
+        description: "Source system identifier"
+      - name: load_date
+        description: "Date derived from load_timestamp"
+      - name: update_date
+        description: "Date derived from update_timestamp"
+      - name: data_quality_score
+        description: "Data quality score (0.0-1.0)"
+      - name: record_status
+        description: "Record status (active/error)"
+        tests:
+          - accepted_values:
+              values: ['active', 'error']
