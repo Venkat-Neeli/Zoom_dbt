@@ -27,5 +27,5 @@ models:
       +materialized: table
 
 vars:
-  start_date: '2020-01-01'
-  end_date: '2030-12-31'
+  start_date: '1900-01-01'
+  end_date: '2099-12-31'
