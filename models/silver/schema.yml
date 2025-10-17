@@ -150,3 +150,126 @@ models:
         description: "Meeting duration in minutes"
         tests:
           - not_null
+  
+  - name: si_participants
+    description: "Silver layer participants table with cleaned and validated data"
+    columns:
+      - name: participant_id
+        description: "Unique identifier for participant"
+        tests:
+          - not_null
+          - unique
+      - name: meeting_id
+        description: "Reference to meeting"
+        tests:
+          - not_null
+  
+  - name: si_feature_usage
+    description: "Silver layer feature usage table with cleaned and validated data"
+    columns:
+      - name: usage_id
+        description: "Unique identifier for usage record"
+        tests:
+          - not_null
+          - unique
+      - name: feature_name
+        description: "Standardized feature name"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Screen Sharing', 'Chat', 'Recording', 'Whiteboard', 'Virtual Background']
+      - name: usage_count
+        description: "Number of times feature was used"
+        tests:
+          - not_null
+  
+  - name: si_webinars
+    description: "Silver layer webinars table with cleaned and validated data"
+    columns:
+      - name: webinar_id
+        description: "Unique identifier for webinar"
+        tests:
+          - not_null
+          - unique
+      - name: registrants
+        description: "Number of webinar registrants"
+        tests:
+          - not_null
+  
+  - name: si_support_tickets
+    description: "Silver layer support tickets table with cleaned and validated data"
+    columns:
+      - name: ticket_id
+        description: "Unique identifier for support ticket"
+        tests:
+          - not_null
+          - unique
+      - name: ticket_type
+        description: "Standardized ticket type"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Audio Issue', 'Video Issue', 'Connectivity', 'Billing Inquiry', 'Feature Request', 'Account Access']
+      - name: resolution_status
+        description: "Standardized resolution status"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Open', 'In Progress', 'Pending Customer', 'Closed', 'Resolved']
+  
+  - name: si_licenses
+    description: "Silver layer licenses table with cleaned and validated data"
+    columns:
+      - name: license_id
+        description: "Unique identifier for license"
+        tests:
+          - not_null
+          - unique
+      - name: license_type
+        description: "Standardized license type"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Pro', 'Business', 'Enterprise', 'Education']
+  
+  - name: si_billing_events
+    description: "Silver layer billing events table with cleaned and validated data"
+    columns:
+      - name: event_id
+        description: "Unique identifier for billing event"
+        tests:
+          - not_null
+          - unique
+      - name: event_type
+        description: "Standardized event type"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Subscription Fee', 'Subscription Renewal', 'Add-on Purchase', 'Refund']
+      - name: amount
+        description: "Billing amount"
+        tests:
+          - not_null
+  
+  - name: si_data_quality_errors
+    description: "Data quality errors and violations tracking table"
+    columns:
+      - name: error_id
+        description: "Unique identifier for error record"
+        tests:
+          - not_null
+          - unique
+      - name: source_table
+        description: "Source table where error occurred"
+        tests:
+          - not_null
+      - name: error_type
+        description: "Type of data quality error"
+        tests:
+          - not_null
+      - name: severity_level
+        description: "Error severity level"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
