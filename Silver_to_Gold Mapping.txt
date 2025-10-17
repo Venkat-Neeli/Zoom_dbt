@@ -1,0 +1,376 @@
+#DATA MAPPING - Gold Mapping:
+
+# GOLD MAPPING FOR DIMENSION TABLES
+
+Target Layer	Target Table	Target Field	Source Layer	Source Table	Source Field	Transformation Rule
+Gold	Go_User_Dimension	user_dim_id	(generated)			Surrogate key: UUID_STRING()
+Gold	Go_User_Dimension	user_id	Silver	sv_users	user_id	Direct mapping
+Gold	Go_User_Dimension	user_name	Silver	sv_users	user_name	Direct mapping
+Gold	Go_User_Dimension	email_address	Silver	sv_users	email	Direct mapping
+Gold	Go_User_Dimension	user_type	Silver	sv_users	plan_type	Map plan_type to user_type (e.g., 'Pro', 'Basic', etc.)
+Gold	Go_User_Dimension	account_status	Silver	sv_users	record_status	Map record_status to account_status (e.g., 'Active', 'Inactive', etc.)
+Gold	Go_User_Dimension	license_type	Silver	sv_licenses	license_type	Join on user_id = assigned_to_user_id; take latest license_type by start_date
+Gold	Go_User_Dimension	department_name	Silver	sv_users	department	Direct mapping if available, else set as NULL
+Gold	Go_User_Dimension	job_title	Silver	sv_users	job_title	Direct mapping if available, else set as NULL
+Gold	Go_User_Dimension	time_zone	Silver	sv_users	time_zone	Direct mapping if available, else set as NULL
+Gold	Go_User_Dimension	account_creation_date	Silver	sv_users	created_at	Direct mapping if available, else set as NULL
+Gold	Go_User_Dimension	last_login_date	Silver	sv_users	last_login	Direct mapping if available, else set as NULL
+Gold	Go_User_Dimension	language_preference	Silver	sv_users	language	Direct mapping if available, else set as NULL
+Gold	Go_User_Dimension	phone_number	Silver	sv_users	phone_number	Direct mapping if available, else set as NULL
+Gold	Go_User_Dimension	load_date	Silver	sv_users	load_date	Direct mapping
+Gold	Go_User_Dimension	update_date	Silver	sv_users	update_date	Direct mapping
+Gold	Go_User_Dimension	source_system	Silver	sv_users	source_system	Direct mapping
+Notes: - Surrogate key user_dim_id is generated using UUID_STRING(). - license_type is joined from sv_licenses using assigned_to_user_id = user_id, taking the latest record by start_date. - Where fields are not present in Silver, set as NULL or default. - All transformation logic is strictly aligned with Silver and Gold DDLs.
+
+Gold.Go_Organization_Dimension
+Target Layer	Target Table	Target Field	Source Layer	Source Table	Source Field	Transformation Rule
+Gold	Go_Organization_Dimension	organization_dim_id	(generated)			Surrogate key: UUID_STRING()
+Gold	Go_Organization_Dimension	organization_id	Silver	sv_organizations	organization_id	Direct mapping if available, else set as NULL
+Gold	Go_Organization_Dimension	organization_name	Silver	sv_organizations	organization_name	Direct mapping if available, else set as NULL
+Gold	Go_Organization_Dimension	industry_classification	Silver	sv_organizations	industry_classification	Direct mapping if available, else set as NULL
+Gold	Go_Organization_Dimension	organization_size	Silver	sv_organizations	organization_size	Direct mapping if available, else set as NULL
+Gold	Go_Organization_Dimension	primary_contact_email	Silver	sv_organizations	primary_contact_email	Direct mapping if available, else set as NULL
+Gold	Go_Organization_Dimension	billing_address	Silver	sv_organizations	billing_address	Direct mapping if available, else set as NULL
+Gold	Go_Organization_Dimension	account_manager_name	Silver	sv_organizations	account_manager_name	Direct mapping if available, else set as NULL
+Gold	Go_Organization_Dimension	contract_start_date	Silver	sv_organizations	contract_start_date	Direct mapping if available, else set as NULL
+Gold	Go_Organization_Dimension	contract_end_date	Silver	sv_organizations	contract_end_date	Direct mapping if available, else set as NULL
+Gold	Go_Organization_Dimension	maximum_user_limit	Silver	sv_organizations	maximum_user_limit	Direct mapping if available, else set as NULL
+Gold	Go_Organization_Dimension	storage_quota_gb	Silver	sv_organizations	storage_quota_gb	Direct mapping if available, else set as NULL
+Gold	Go_Organization_Dimension	security_policy_level	Silver	sv_organizations	security_policy_level	Direct mapping if available, else set as NULL
+Gold	Go_Organization_Dimension	load_date	Silver	sv_organizations	load_date	Direct mapping if available, else set as NULL
+Gold	Go_Organization_Dimension	update_date	Silver	sv_organizations	update_date	Direct mapping if available, else set as NULL
+Gold	Go_Organization_Dimension	source_system	Silver	sv_organizations	source_system	Direct mapping if available, else set as NULL
+Notes: - Surrogate key organization_dim_id is generated using UUID_STRING(). - Where fields are not present in Silver, set as NULL or default. - All transformation logic is strictly aligned with Silver and Gold DDLs.
+
+Gold.Go_Time_Dimension
+Target Layer	Target Table	Target Field	Source Layer	Source Table	Source Field	Transformation Rule
+Gold	Go_Time_Dimension	time_dim_id	(generated)			Surrogate key: UUID_STRING()
+Gold	Go_Time_Dimension	date_key	Silver	sv_meetings	start_time	CAST(start_time AS DATE)
+Gold	Go_Time_Dimension	year_number	Silver	sv_meetings	start_time	EXTRACT(YEAR FROM start_time)
+Gold	Go_Time_Dimension	quarter_number	Silver	sv_meetings	start_time	EXTRACT(QUARTER FROM start_time)
+Gold	Go_Time_Dimension	month_number	Silver	sv_meetings	start_time	EXTRACT(MONTH FROM start_time)
+Gold	Go_Time_Dimension	month_name	Silver	sv_meetings	start_time	TO_VARCHAR(start_time, 'MMMM')
+Gold	Go_Time_Dimension	week_number	Silver	sv_meetings	start_time	EXTRACT(WEEK FROM start_time)
+Gold	Go_Time_Dimension	day_of_year	Silver	sv_meetings	start_time	EXTRACT(DOY FROM start_time)
+Gold	Go_Time_Dimension	day_of_month	Silver	sv_meetings	start_time	EXTRACT(DAY FROM start_time)
+Gold	Go_Time_Dimension	day_of_week	Silver	sv_meetings	start_time	EXTRACT(DOW FROM start_time)
+Gold	Go_Time_Dimension	day_name	Silver	sv_meetings	start_time	TO_VARCHAR(start_time, 'DAY')
+Gold	Go_Time_Dimension	is_weekend	Silver	sv_meetings	start_time	CASE WHEN EXTRACT(DOW FROM start_time) IN (0,6) THEN TRUE ELSE FALSE END
+Gold	Go_Time_Dimension	is_holiday				Not available in Silver; set as FALSE
+Gold	Go_Time_Dimension	fiscal_year	Silver	sv_meetings	start_time	EXTRACT(YEAR FROM start_time)
+Gold	Go_Time_Dimension	fiscal_quarter	Silver	sv_meetings	start_time	EXTRACT(QUARTER FROM start_time)
+Gold	Go_Time_Dimension	load_date	Silver	sv_meetings	load_date	Direct mapping
+Gold	Go_Time_Dimension	update_date	Silver	sv_meetings	update_date	Direct mapping
+Gold	Go_Time_Dimension	source_system	Silver	sv_meetings	source_system	Direct mapping
+Notes: - Time dimension is derived from sv_meetings.start_time. - is_holiday is set as FALSE unless a holiday calendar is available. - All transformation logic is strictly aligned with Silver and Gold DDLs.
+
+Gold.Go_Device_Dimension
+Target Layer	Target Table	Target Field	Source Layer	Source Table	Source Field	Transformation Rule
+Gold	Go_Device_Dimension	device_dim_id	(generated)			Surrogate key: UUID_STRING()
+Gold	Go_Device_Dimension	device_connection_id	Silver	sv_participants	device_connection_id	Direct mapping if available, else set as NULL
+Gold	Go_Device_Dimension	device_type	Silver	sv_participants	device_type	Direct mapping if available, else set as NULL
+Gold	Go_Device_Dimension	operating_system	Silver	sv_participants	operating_system	Direct mapping if available, else set as NULL
+Gold	Go_Device_Dimension	application_version	Silver	sv_participants	application_version	Direct mapping if available, else set as NULL
+Gold	Go_Device_Dimension	network_connection_type	Silver	sv_participants	network_connection_type	Direct mapping if available, else set as NULL
+Gold	Go_Device_Dimension	device_category	Silver	sv_participants	device_category	Direct mapping if available, else set as NULL
+Gold	Go_Device_Dimension	platform_family	Silver	sv_participants	platform_family	Direct mapping if available, else set as NULL
+Gold	Go_Device_Dimension	load_date	Silver	sv_participants	load_date	Direct mapping if available, else set as NULL
+Gold	Go_Device_Dimension	update_date	Silver	sv_participants	update_date	Direct mapping if available, else set as NULL
+Gold	Go_Device_Dimension	source_system	Silver	sv_participants	source_system	Direct mapping if available, else set as NULL
+Notes: - Surrogate key device_dim_id is generated using UUID_STRING(). - Where fields are not present in Silver, set as NULL or default. - All transformation logic is strictly aligned with Silver and Gold DDLs.
+
+Gold.Go_Geography_Dimension
+Target Layer	Target Table	Target Field	Source Layer	Source Table	Source Field	Transformation Rule
+Gold	Go_Geography_Dimension	geography_dim_id	(generated)			Surrogate key: UUID_STRING()
+Gold	Go_Geography_Dimension	country_code	Silver	sv_geography	country_code	Direct mapping if available, else set as NULL
+Gold	Go_Geography_Dimension	country_name	Silver	sv_geography	country_name	Direct mapping if available, else set as NULL
+Gold	Go_Geography_Dimension	region_name	Silver	sv_geography	region_name	Direct mapping if available, else set as NULL
+Gold	Go_Geography_Dimension	time_zone	Silver	sv_geography	time_zone	Direct mapping if available, else set as NULL
+Gold	Go_Geography_Dimension	continent	Silver	sv_geography	continent	Direct mapping if available, else set as NULL
+Gold	Go_Geography_Dimension	load_date	Silver	sv_geography	load_date	Direct mapping if available, else set as NULL
+Gold	Go_Geography_Dimension	update_date	Silver	sv_geography	update_date	Direct mapping if available, else set as NULL
+Gold	Go_Geography_Dimension	source_system	Silver	sv_geography	source_system	Direct mapping if available, else set as NULL
+Notes: - Surrogate key geography_dim_id is generated using UUID_STRING(). - Where fields are not present in Silver, set as NULL or default. - All transformation logic is strictly aligned with Silver and Gold DDLs.
+
+
+### Data Mapping for Fact Tables
+
+1. Gold.Go_Meeting_Facts
+Target Layer	Target Table	Target Field	Source Layer	Source Table	Source Field	Transformation Rule
+Gold	Go_Meeting_Facts	meeting_fact_id	Gold	Generated	N/A	CONCAT('MF', meeting_id, '', CURRENT_TIMESTAMP()::STRING) - Generate unique fact ID
+Gold	Go_Meeting_Facts	meeting_id	Silver	sv_meetings	meeting_id	Direct mapping with NULL check: COALESCE(meeting_id, 'UNKNOWN')
+Gold	Go_Meeting_Facts	host_id	Silver	sv_meetings	host_id	Direct mapping with validation: CASE WHEN host_id IS NOT NULL THEN host_id ELSE 'UNKNOWN_HOST' END
+Gold	Go_Meeting_Facts	meeting_topic	Silver	sv_meetings	meeting_topic	Data cleansing: TRIM(COALESCE(meeting_topic, 'No Topic Specified'))
+Gold	Go_Meeting_Facts	start_time	Silver	sv_meetings	start_time	Timestamp standardization: CONVERT_TIMEZONE('UTC', start_time)
+Gold	Go_Meeting_Facts	end_time	Silver	sv_meetings	end_time	Timestamp standardization: CONVERT_TIMEZONE('UTC', end_time)
+Gold	Go_Meeting_Facts	duration_minutes	Silver	sv_meetings	duration_minutes	Validation and calculation: CASE WHEN duration_minutes > 0 THEN duration_minutes ELSE DATEDIFF('minute', start_time, end_time) END
+Gold	Go_Meeting_Facts	participant_count	Silver	sv_participants	COUNT(*)	Aggregation: COUNT(DISTINCT participant_id) GROUP BY meeting_id
+Gold	Go_Meeting_Facts	max_concurrent_participants	Silver	sv_participants	Calculated	Complex calculation: MAX concurrent participants using time overlap analysis
+Gold	Go_Meeting_Facts	total_attendance_minutes	Silver	sv_participants	SUM(duration)	SUM(DATEDIFF('minute', join_time, leave_time)) GROUP BY meeting_id
+Gold	Go_Meeting_Facts	average_attendance_duration	Gold	Calculated	N/A	total_attendance_minutes / participant_count
+Gold	Go_Meeting_Facts	meeting_type	Silver	sv_meetings	Derived	CASE WHEN duration_minutes < 15 THEN 'Quick Meeting' WHEN duration_minutes < 60 THEN 'Standard Meeting' ELSE 'Extended Meeting' END
+Gold	Go_Meeting_Facts	meeting_status	Silver	sv_meetings	Derived	CASE WHEN end_time IS NOT NULL THEN 'Completed' WHEN start_time <= CURRENT_TIMESTAMP() THEN 'In Progress' ELSE 'Scheduled' END
+Gold	Go_Meeting_Facts	recording_enabled	Silver	sv_feature_usage	Derived	CASE WHEN feature_name = 'Recording' THEN TRUE ELSE FALSE END
+Gold	Go_Meeting_Facts	screen_share_count	Silver	sv_feature_usage	COUNT(*)	COUNT(*) WHERE feature_name = 'Screen Sharing' GROUP BY meeting_id
+Gold	Go_Meeting_Facts	chat_message_count	Silver	sv_feature_usage	usage_count	SUM(usage_count) WHERE feature_name = 'Chat' GROUP BY meeting_id
+Gold	Go_Meeting_Facts	breakout_room_count	Silver	sv_feature_usage	usage_count	SUM(usage_count) WHERE feature_name = 'Breakout Rooms' GROUP BY meeting_id
+Gold	Go_Meeting_Facts	quality_score_avg	Silver	sv_meetings	data_quality_score	AVG(data_quality_score) - Average quality score for the meeting
+Gold	Go_Meeting_Facts	engagement_score	Gold	Calculated	N/A	Composite score: (chat_message_count * 0.3 + screen_share_count * 0.4 + participant_count * 0.3) / 10
+Gold	Go_Meeting_Facts	load_date	Silver	sv_meetings	load_date	Direct mapping: load_date
+Gold	Go_Meeting_Facts	update_date	Gold	Generated	N/A	CURRENT_DATE()
+Gold	Go_Meeting_Facts	source_system	Silver	sv_meetings	source_system	Direct mapping: source_system
+2. Gold.Go_Participant_Facts
+Target Layer	Target Table	Target Field	Source Layer	Source Table	Source Field	Transformation Rule
+Gold	Go_Participant_Facts	participant_fact_id	Gold	Generated	N/A	CONCAT('PF', participant_id, '', meeting_id) - Generate unique fact ID
+Gold	Go_Participant_Facts	meeting_id	Silver	sv_participants	meeting_id	Direct mapping with validation: COALESCE(meeting_id, 'UNKNOWN')
+Gold	Go_Participant_Facts	participant_id	Silver	sv_participants	participant_id	Direct mapping: participant_id
+Gold	Go_Participant_Facts	user_id	Silver	sv_participants	user_id	Direct mapping with NULL handling: COALESCE(user_id, 'GUEST_USER')
+Gold	Go_Participant_Facts	join_time	Silver	sv_participants	join_time	Timestamp standardization: CONVERT_TIMEZONE('UTC', join_time)
+Gold	Go_Participant_Facts	leave_time	Silver	sv_participants	leave_time	Timestamp standardization: CONVERT_TIMEZONE('UTC', leave_time)
+Gold	Go_Participant_Facts	attendance_duration	Silver	sv_participants	Calculated	DATEDIFF('minute', join_time, leave_time)
+Gold	Go_Participant_Facts	participant_role	Silver	sv_users	Derived	CASE WHEN sv_participants.user_id = sv_meetings.host_id THEN 'Host' ELSE 'Participant' END
+Gold	Go_Participant_Facts	audio_connection_type	Silver	sv_feature_usage	Derived	CASE WHEN feature_name LIKE '%Audio%' THEN 'Computer Audio' ELSE 'Phone' END
+Gold	Go_Participant_Facts	video_enabled	Silver	sv_feature_usage	Derived	CASE WHEN feature_name = 'Video' THEN TRUE ELSE FALSE END
+Gold	Go_Participant_Facts	screen_share_duration	Silver	sv_feature_usage	usage_count	SUM(usage_count) WHERE feature_name = 'Screen Sharing' AND user_id = participant.user_id
+Gold	Go_Participant_Facts	chat_messages_sent	Silver	sv_feature_usage	usage_count	SUM(usage_count) WHERE feature_name = 'Chat' AND user_id = participant.user_id
+Gold	Go_Participant_Facts	interaction_count	Silver	sv_feature_usage	COUNT(*)	COUNT(*) WHERE user_id = participant.user_id GROUP BY participant_id
+Gold	Go_Participant_Facts	connection_quality_rating	Silver	sv_participants	data_quality_score	ROUND(data_quality_score, 2)
+Gold	Go_Participant_Facts	device_type	Silver	sv_participants	Derived	'Desktop' - Default value, can be enhanced with device detection logic
+Gold	Go_Participant_Facts	geographic_location	Silver	sv_users	Derived	'Unknown' - Placeholder for geographic data enhancement
+Gold	Go_Participant_Facts	load_date	Silver	sv_participants	load_date	Direct mapping: load_date
+Gold	Go_Participant_Facts	update_date	Gold	Generated	N/A	CURRENT_DATE()
+Gold	Go_Participant_Facts	source_system	Silver	sv_participants	source_system	Direct mapping: source_system
+3. Gold.Go_Webinar_Facts
+Target Layer	Target Table	Target Field	Source Layer	Source Table	Source Field	Transformation Rule
+Gold	Go_Webinar_Facts	webinar_fact_id	Gold	Generated	N/A	CONCAT('WF', webinar_id, '', CURRENT_TIMESTAMP()::STRING)
+Gold	Go_Webinar_Facts	webinar_id	Silver	sv_webinars	webinar_id	Direct mapping: webinar_id
+Gold	Go_Webinar_Facts	host_id	Silver	sv_webinars	host_id	Direct mapping: host_id
+Gold	Go_Webinar_Facts	webinar_topic	Silver	sv_webinars	webinar_topic	Data cleansing: TRIM(COALESCE(webinar_topic, 'No Topic Specified'))
+Gold	Go_Webinar_Facts	start_time	Silver	sv_webinars	start_time	Timestamp standardization: CONVERT_TIMEZONE('UTC', start_time)
+Gold	Go_Webinar_Facts	end_time	Silver	sv_webinars	end_time	Timestamp standardization: CONVERT_TIMEZONE('UTC', end_time)
+Gold	Go_Webinar_Facts	duration_minutes	Silver	sv_webinars	Calculated	DATEDIFF('minute', start_time, end_time)
+Gold	Go_Webinar_Facts	registrants_count	Silver	sv_webinars	registrants	Direct mapping with validation: COALESCE(registrants, 0)
+Gold	Go_Webinar_Facts	actual_attendees	Silver	sv_participants	COUNT(*)	COUNT(DISTINCT participant_id) WHERE meeting_id = webinar_id
+Gold	Go_Webinar_Facts	attendance_rate	Gold	Calculated	N/A	CASE WHEN registrants_count > 0 THEN (actual_attendees::FLOAT / registrants_count) * 100 ELSE 0 END
+Gold	Go_Webinar_Facts	max_concurrent_attendees	Silver	sv_participants	Calculated	MAX concurrent participants using time overlap analysis
+Gold	Go_Webinar_Facts	qa_questions_count	Silver	sv_feature_usage	usage_count	SUM(usage_count) WHERE feature_name = 'Q&A'
+Gold	Go_Webinar_Facts	poll_responses_count	Silver	sv_feature_usage	usage_count	SUM(usage_count) WHERE feature_name = 'Polling'
+Gold	Go_Webinar_Facts	engagement_score	Gold	Calculated	N/A	(qa_questions_count * 0.4 + poll_responses_count * 0.3 + attendance_rate * 0.3) / 10
+Gold	Go_Webinar_Facts	event_category	Silver	sv_webinars	Derived	CASE WHEN duration_minutes > 120 THEN 'Long Form' WHEN duration_minutes > 60 THEN 'Standard' ELSE 'Short Form' END
+Gold	Go_Webinar_Facts	load_date	Silver	sv_webinars	load_date	Direct mapping: load_date
+Gold	Go_Webinar_Facts	update_date	Gold	Generated	N/A	CURRENT_DATE()
+Gold	Go_Webinar_Facts	source_system	Silver	sv_webinars	source_system	Direct mapping: source_system
+4. Gold.Go_Billing_Facts
+Target Layer	Target Table	Target Field	Source Layer	Source Table	Source Field	Transformation Rule
+Gold	Go_Billing_Facts	billing_fact_id	Gold	Generated	N/A	CONCAT('BF', event_id, '', user_id)
+Gold	Go_Billing_Facts	event_id	Silver	sv_billing_events	event_id	Direct mapping: event_id
+Gold	Go_Billing_Facts	user_id	Silver	sv_billing_events	user_id	Direct mapping: user_id
+Gold	Go_Billing_Facts	organization_id	Silver	sv_users	company	Derived from user's company: COALESCE(company, 'INDIVIDUAL')
+Gold	Go_Billing_Facts	event_type	Silver	sv_billing_events	event_type	Data standardization: UPPER(TRIM(event_type))
+Gold	Go_Billing_Facts	amount	Silver	sv_billing_events	amount	Currency standardization: ROUND(amount, 2)
+Gold	Go_Billing_Facts	event_date	Silver	sv_billing_events	event_date	Direct mapping: event_date
+Gold	Go_Billing_Facts	billing_period_start	Silver	sv_billing_events	event_date	First day of month: DATE_TRUNC('month', event_date)
+Gold	Go_Billing_Facts	billing_period_end	Silver	sv_billing_events	event_date	Last day of month: LAST_DAY(event_date)
+Gold	Go_Billing_Facts	payment_method	Silver	sv_billing_events	Derived	'Credit Card' - Default value, can be enhanced
+Gold	Go_Billing_Facts	transaction_status	Silver	sv_billing_events	Derived	CASE WHEN amount > 0 THEN 'Completed' ELSE 'Refunded' END
+Gold	Go_Billing_Facts	currency_code	Silver	sv_billing_events	Derived	'USD' - Default currency
+Gold	Go_Billing_Facts	tax_amount	Silver	sv_billing_events	Calculated	amount * 0.08 - Estimated tax (8%)
+Gold	Go_Billing_Facts	discount_amount	Silver	sv_billing_events	Derived	0.00 - Default no discount
+Gold	Go_Billing_Facts	load_date	Silver	sv_billing_events	load_date	Direct mapping: load_date
+Gold	Go_Billing_Facts	update_date	Gold	Generated	N/A	CURRENT_DATE()
+Gold	Go_Billing_Facts	source_system	Silver	sv_billing_events	source_system	Direct mapping: source_system
+5. Gold.Go_Usage_Facts
+Target Layer	Target Table	Target Field	Source Layer	Source Table	Source Field	Transformation Rule
+Gold	Go_Usage_Facts	usage_fact_id	Gold	Generated	N/A	CONCAT('UF', user_id, '', usage_date::STRING)
+Gold	Go_Usage_Facts	user_id	Silver	sv_users	user_id	Direct mapping: user_id
+Gold	Go_Usage_Facts	organization_id	Silver	sv_users	company	Derived: COALESCE(company, 'INDIVIDUAL')
+Gold	Go_Usage_Facts	usage_date	Silver	sv_feature_usage	usage_date	Direct mapping: usage_date
+Gold	Go_Usage_Facts	meeting_count	Silver	sv_meetings	COUNT(*)	COUNT(DISTINCT meeting_id) WHERE host_id = user_id GROUP BY DATE(start_time)
+Gold	Go_Usage_Facts	total_meeting_minutes	Silver	sv_meetings	SUM(duration)	SUM(duration_minutes) WHERE host_id = user_id GROUP BY DATE(start_time)
+Gold	Go_Usage_Facts	webinar_count	Silver	sv_webinars	COUNT(*)	COUNT(DISTINCT webinar_id) WHERE host_id = user_id GROUP BY DATE(start_time)
+Gold	Go_Usage_Facts	total_webinar_minutes	Silver	sv_webinars	SUM(duration)	SUM(DATEDIFF('minute', start_time, end_time)) WHERE host_id = user_id
+Gold	Go_Usage_Facts	recording_storage_gb	Silver	sv_feature_usage	Calculated	SUM(usage_count) * 0.1 WHERE feature_name = 'Recording' - Estimated storage
+Gold	Go_Usage_Facts	feature_usage_count	Silver	sv_feature_usage	SUM(usage_count)	SUM(usage_count) GROUP BY user_id, usage_date
+Gold	Go_Usage_Facts	unique_participants_hosted	Silver	sv_participants	COUNT(DISTINCT)	COUNT(DISTINCT user_id) WHERE meeting_id IN (SELECT meeting_id FROM sv_meetings WHERE host_id = usage_facts.user_id)
+Gold	Go_Usage_Facts	load_date	Silver	sv_feature_usage	load_date	Direct mapping: load_date
+Gold	Go_Usage_Facts	update_date	Gold	Generated	N/A	CURRENT_DATE()
+Gold	Go_Usage_Facts	source_system	Silver	sv_feature_usage	source_system	Direct mapping: source_system
+6. Gold.Go_Quality_Facts
+Target Layer	Target Table	Target Field	Source Layer	Source Table	Source Field	Transformation Rule
+Gold	Go_Quality_Facts	quality_fact_id	Gold	Generated	N/A	CONCAT('QF', meeting_id, '', participant_id)
+Gold	Go_Quality_Facts	meeting_id	Silver	sv_participants	meeting_id	Direct mapping: meeting_id
+Gold	Go_Quality_Facts	participant_id	Silver	sv_participants	participant_id	Direct mapping: participant_id
+Gold	Go_Quality_Facts	device_connection_id	Gold	Generated	N/A	CONCAT('DC', participant_id, '', CURRENT_TIMESTAMP()::STRING)
+Gold	Go_Quality_Facts	audio_quality_score	Silver	sv_participants	data_quality_score	ROUND(data_quality_score * 0.8, 2) - Audio component
+Gold	Go_Quality_Facts	video_quality_score	Silver	sv_participants	data_quality_score	ROUND(data_quality_score * 0.9, 2) - Video component
+Gold	Go_Quality_Facts	connection_stability_rating	Silver	sv_participants	data_quality_score	ROUND(data_quality_score, 2)
+Gold	Go_Quality_Facts	latency_ms	Silver	sv_participants	Derived	CASE WHEN data_quality_score > 8 THEN 50 WHEN data_quality_score > 6 THEN 100 ELSE 200 END
+Gold	Go_Quality_Facts	packet_loss_rate	Silver	sv_participants	Derived	CASE WHEN data_quality_score > 8 THEN 0.01 WHEN data_quality_score > 6 THEN 0.05 ELSE 0.1 END
+Gold	Go_Quality_Facts	bandwidth_utilization	Silver	sv_participants	Derived	DATEDIFF('minute', join_time, leave_time) * 2 - Estimated bandwidth in MB
+Gold	Go_Quality_Facts	cpu_usage_percentage	Silver	sv_participants	Derived	CASE WHEN data_quality_score > 8 THEN 25.0 WHEN data_quality_score > 6 THEN 50.0 ELSE 75.0 END
+Gold	Go_Quality_Facts	memory_usage_mb	Silver	sv_participants	Derived	DATEDIFF('minute', join_time, leave_time) * 10 - Estimated memory usage
+Gold	Go_Quality_Facts	load_date	Silver	sv_participants	load_date	Direct mapping: load_date
+Gold	Go_Quality_Facts	update_date	Gold	Generated	N/A	CURRENT_DATE()
+Gold	Go_Quality_Facts	source_system	Silver	sv_participants	source_system	Direct mapping: source_system
+Transformation Rules and Business Logic
+Data Quality and Cleansing Rules
+NULL Handling:
+
+All critical ID fields use COALESCE with default values
+Text fields are trimmed and given default values for NULL cases
+Numeric fields default to 0 where appropriate
+Data Validation:
+
+Duration calculations validated against start/end times
+Participant counts validated against actual participant records
+Quality scores bounded between 0 and 10
+Standardization:
+
+All timestamps converted to UTC timezone
+Currency amounts rounded to 2 decimal places
+Text fields standardized with UPPER/TRIM functions
+Calculated Fields and Metrics
+Engagement Score: Composite metric combining chat activity, screen sharing, and participation
+Attendance Rate: Percentage calculation for webinars (actual/registered)
+Quality Metrics: Derived from data quality scores with realistic estimates
+Usage Aggregations: Daily, monthly rollups of user activity
+Performance Optimization
+Clustering: All fact tables clustered on date and key dimension fields
+Partitioning: Time-based partitioning for large fact tables
+Indexing: Appropriate clustering keys for analytical queries
+Data Lineage and Audit
+Source Tracking: All records maintain source_system reference
+Load Timestamps: Complete audit trail of data processing
+Version Control: Incremental loading with update timestamps
+Implementation Notes
+Snowflake SQL Compatibility
+All transformations use Snowflake-native functions
+TIMESTAMP_NTZ used for timezone-naive timestamps
+Appropriate data types for optimal storage and performance
+Error Handling
+Comprehensive NULL checking and default value assignment
+Data quality validation at each transformation step
+Error logging and monitoring capabilities
+Scalability Considerations
+Designed for incremental loading patterns
+Optimized for analytical query performance
+Supports historical data retention requirements
+This mapping ensures complete transformation of Silver layer operational data into Gold layer analytical fact tables, maintaining data quality, consistency, and performance while enabling comprehensive business intelligence and reporting capabilities.
+
+
+### GOLD AGGREGATED DATA MAPPPING :
+
+Data Mapping for Aggregated Tables
+1. Go_Daily_Meeting_Summary
+Target Layer	Target Table	Target Field	Source Layer	Source Table	Source Field	Aggregation Rule
+Gold	Go_Daily_Meeting_Summary	summary_id	Silver	-	-	GENERATED (UUID or SEQUENCE)
+Gold	Go_Daily_Meeting_Summary	summary_date	Silver	sv_meetings	start_time	DATE(start_time) GROUP BY
+Gold	Go_Daily_Meeting_Summary	organization_id	Silver	sv_users	company	DERIVED FROM host_id->user_id->company
+Gold	Go_Daily_Meeting_Summary	total_meetings	Silver	sv_meetings	meeting_id	COUNT(DISTINCT meeting_id)
+Gold	Go_Daily_Meeting_Summary	total_meeting_minutes	Silver	sv_meetings	duration_minutes	SUM(duration_minutes)
+Gold	Go_Daily_Meeting_Summary	total_participants	Silver	sv_participants	participant_id	COUNT(participant_id)
+Gold	Go_Daily_Meeting_Summary	unique_hosts	Silver	sv_meetings	host_id	COUNT(DISTINCT host_id)
+Gold	Go_Daily_Meeting_Summary	unique_participants	Silver	sv_participants	user_id	COUNT(DISTINCT user_id)
+Gold	Go_Daily_Meeting_Summary	average_meeting_duration	Silver	sv_meetings	duration_minutes	AVG(duration_minutes)
+Gold	Go_Daily_Meeting_Summary	average_participants_per_meeting	Silver	sv_participants	participant_id	COUNT(participant_id)/COUNT(DISTINCT meeting_id)
+Gold	Go_Daily_Meeting_Summary	meetings_with_recording	Silver	sv_meetings	meeting_id	COUNT(DISTINCT meeting_id) WHERE recording_enabled=TRUE
+Gold	Go_Daily_Meeting_Summary	recording_percentage	Silver	sv_meetings	meeting_id	(COUNT(meetings_with_recording)/COUNT(total_meetings))*100
+Gold	Go_Daily_Meeting_Summary	average_quality_score	Silver	sv_meetings	data_quality_score	AVG(data_quality_score)
+Gold	Go_Daily_Meeting_Summary	average_engagement_score	Silver	sv_participants	-	DERIVED FROM participation metrics
+Gold	Go_Daily_Meeting_Summary	load_date	Silver	sv_meetings	load_date	MAX(load_date)
+Gold	Go_Daily_Meeting_Summary	update_date	Silver	-	-	CURRENT_DATE()
+Gold	Go_Daily_Meeting_Summary	source_system	Silver	sv_meetings	source_system	FIRST_VALUE(source_system)
+2. Go_Monthly_User_Activity
+Target Layer	Target Table	Target Field	Source Layer	Source Table	Source Field	Aggregation Rule
+Gold	Go_Monthly_User_Activity	activity_id	Silver	-	-	GENERATED (UUID or SEQUENCE)
+Gold	Go_Monthly_User_Activity	activity_month	Silver	sv_meetings	start_time	DATE_TRUNC('MONTH', start_time) GROUP BY
+Gold	Go_Monthly_User_Activity	user_id	Silver	sv_users	user_id	user_id GROUP BY
+Gold	Go_Monthly_User_Activity	organization_id	Silver	sv_users	company	company GROUP BY
+Gold	Go_Monthly_User_Activity	meetings_hosted	Silver	sv_meetings	meeting_id	COUNT(DISTINCT meeting_id) WHERE host_id = user_id
+Gold	Go_Monthly_User_Activity	meetings_attended	Silver	sv_participants	meeting_id	COUNT(DISTINCT meeting_id) WHERE user_id = user_id
+Gold	Go_Monthly_User_Activity	total_hosting_minutes	Silver	sv_meetings	duration_minutes	SUM(duration_minutes) WHERE host_id = user_id
+Gold	Go_Monthly_User_Activity	total_attendance_minutes	Silver	sv_participants	join_time, leave_time	SUM(DATEDIFF('minute', join_time, leave_time))
+Gold	Go_Monthly_User_Activity	webinars_hosted	Silver	sv_webinars	webinar_id	COUNT(DISTINCT webinar_id) WHERE host_id = user_id
+Gold	Go_Monthly_User_Activity	webinars_attended	Silver	sv_webinars	webinar_id	COUNT(DISTINCT webinar_id) FROM participants
+Gold	Go_Monthly_User_Activity	recordings_created	Silver	sv_meetings	meeting_id	COUNT(meeting_id) WHERE recording_enabled=TRUE AND host_id = user_id
+Gold	Go_Monthly_User_Activity	storage_used_gb	Silver	-	-	CALCULATED FROM recording metrics
+Gold	Go_Monthly_User_Activity	unique_participants_interacted	Silver	sv_participants	user_id	COUNT(DISTINCT user_id) FROM meetings hosted
+Gold	Go_Monthly_User_Activity	average_meeting_quality	Silver	sv_meetings	data_quality_score	AVG(data_quality_score) WHERE host_id = user_id
+Gold	Go_Monthly_User_Activity	load_date	Silver	sv_users	load_date	MAX(load_date)
+Gold	Go_Monthly_User_Activity	update_date	Silver	-	-	CURRENT_DATE()
+Gold	Go_Monthly_User_Activity	source_system	Silver	sv_users	source_system	FIRST_VALUE(source_system)
+3. Go_Feature_Adoption_Summary
+Target Layer	Target Table	Target Field	Source Layer	Source Table	Source Field	Aggregation Rule
+Gold	Go_Feature_Adoption_Summary	adoption_id	Silver	-	-	GENERATED (UUID or SEQUENCE)
+Gold	Go_Feature_Adoption_Summary	summary_period	Silver	sv_feature_usage	usage_date	DATE_TRUNC('MONTH', usage_date) GROUP BY
+Gold	Go_Feature_Adoption_Summary	organization_id	Silver	sv_users	company	DERIVED FROM meeting_id->host_id->company
+Gold	Go_Feature_Adoption_Summary	feature_name	Silver	sv_feature_usage	feature_name	feature_name GROUP BY
+Gold	Go_Feature_Adoption_Summary	total_usage_count	Silver	sv_feature_usage	usage_count	SUM(usage_count)
+Gold	Go_Feature_Adoption_Summary	unique_users_count	Silver	sv_feature_usage	meeting_id	COUNT(DISTINCT host_id) FROM meetings
+Gold	Go_Feature_Adoption_Summary	adoption_rate	Silver	sv_feature_usage	-	(unique_users_count/total_active_users)*100
+Gold	Go_Feature_Adoption_Summary	usage_trend	Silver	sv_feature_usage	usage_count	CASE WHEN current_month > previous_month THEN 'Increasing' ELSE 'Decreasing' END
+Gold	Go_Feature_Adoption_Summary	load_date	Silver	sv_feature_usage	load_date	MAX(load_date)
+Gold	Go_Feature_Adoption_Summary	update_date	Silver	-	-	CURRENT_DATE()
+Gold	Go_Feature_Adoption_Summary	source_system	Silver	sv_feature_usage	source_system	FIRST_VALUE(source_system)
+4. Go_Quality_Metrics_Summary
+Target Layer	Target Table	Target Field	Source Layer	Source Table	Source Field	Aggregation Rule
+Gold	Go_Quality_Metrics_Summary	quality_summary_id	Silver	-	-	GENERATED (UUID or SEQUENCE)
+Gold	Go_Quality_Metrics_Summary	summary_date	Silver	sv_meetings	start_time	DATE(start_time) GROUP BY
+Gold	Go_Quality_Metrics_Summary	organization_id	Silver	sv_users	company	DERIVED FROM host_id->user_id->company
+Gold	Go_Quality_Metrics_Summary	total_sessions	Silver	sv_meetings	meeting_id	COUNT(DISTINCT meeting_id)
+Gold	Go_Quality_Metrics_Summary	average_audio_quality	Silver	sv_meetings	data_quality_score	AVG(data_quality_score) WHERE quality_type='audio'
+Gold	Go_Quality_Metrics_Summary	average_video_quality	Silver	sv_meetings	data_quality_score	AVG(data_quality_score) WHERE quality_type='video'
+Gold	Go_Quality_Metrics_Summary	average_connection_stability	Silver	sv_participants	-	DERIVED FROM join/leave patterns
+Gold	Go_Quality_Metrics_Summary	average_latency_ms	Silver	sv_meetings	-	DERIVED FROM connection metrics
+Gold	Go_Quality_Metrics_Summary	connection_success_rate	Silver	sv_participants	participant_id	(successful_connections/total_attempts)*100
+Gold	Go_Quality_Metrics_Summary	call_drop_rate	Silver	sv_participants	leave_time	(early_disconnects/total_participants)*100
+Gold	Go_Quality_Metrics_Summary	user_satisfaction_score	Silver	sv_meetings	data_quality_score	AVG(data_quality_score)
+Gold	Go_Quality_Metrics_Summary	load_date	Silver	sv_meetings	load_date	MAX(load_date)
+Gold	Go_Quality_Metrics_Summary	update_date	Silver	-	-	CURRENT_DATE()
+Gold	Go_Quality_Metrics_Summary	source_system	Silver	sv_meetings	source_system	FIRST_VALUE(source_system)
+5. Go_Engagement_Summary
+Target Layer	Target Table	Target Field	Source Layer	Source Table	Source Field	Aggregation Rule
+Gold	Go_Engagement_Summary	engagement_id	Silver	-	-	GENERATED (UUID or SEQUENCE)
+Gold	Go_Engagement_Summary	summary_date	Silver	sv_meetings	start_time	DATE(start_time) GROUP BY
+Gold	Go_Engagement_Summary	organization_id	Silver	sv_users	company	DERIVED FROM host_id->user_id->company
+Gold	Go_Engagement_Summary	total_meetings	Silver	sv_meetings	meeting_id	COUNT(DISTINCT meeting_id)
+Gold	Go_Engagement_Summary	average_participation_rate	Silver	sv_participants	participant_id	(COUNT(participant_id)/expected_participants)*100
+Gold	Go_Engagement_Summary	total_chat_messages	Silver	sv_feature_usage	usage_count	SUM(usage_count) WHERE feature_name='chat'
+Gold	Go_Engagement_Summary	screen_share_sessions	Silver	sv_feature_usage	usage_count	SUM(usage_count) WHERE feature_name='screen_share'
+Gold	Go_Engagement_Summary	total_reactions	Silver	sv_feature_usage	usage_count	SUM(usage_count) WHERE feature_name='reactions'
+Gold	Go_Engagement_Summary	qa_interactions	Silver	sv_feature_usage	usage_count	SUM(usage_count) WHERE feature_name='qa'
+Gold	Go_Engagement_Summary	poll_responses	Silver	sv_feature_usage	usage_count	SUM(usage_count) WHERE feature_name='polls'
+Gold	Go_Engagement_Summary	average_attention_score	Silver	sv_participants	-	DERIVED FROM participation duration vs meeting duration
+Gold	Go_Engagement_Summary	load_date	Silver	sv_meetings	load_date	MAX(load_date)
+Gold	Go_Engagement_Summary	update_date	Silver	-	-	CURRENT_DATE()
+Gold	Go_Engagement_Summary	source_system	Silver	sv_meetings	source_system	FIRST_VALUE(source_system)
+Aggregation Logic Details
+Temporal Grouping Rules:
+Daily Aggregations:
+
+GROUP BY DATE(start_time), organization_id
+Filters: record_status = 'ACTIVE' AND data_quality_score >= 0.7
+Monthly Aggregations:
+
+GROUP BY DATE_TRUNC('MONTH', start_time), user_id, organization_id
+Filters: record_status = 'ACTIVE' AND data_quality_score >= 0.7
+Feature Aggregations:
+
+GROUP BY DATE_TRUNC('MONTH', usage_date), feature_name, organization_id
+Filters: record_status = 'ACTIVE'
+Data Quality Filters:
+All aggregations exclude records where record_status != 'ACTIVE'
+Quality metrics only include records where data_quality_score >= 0.7
+Null values are excluded from numeric aggregations
+Date ranges are validated before aggregation
+Performance Optimization:
+Clustering keys applied on summary_date and organization_id
+Incremental processing using load_date and update_date
+Materialized views for frequently accessed aggregations
+Partitioning by month for time-series data
+Business Rules:
+Meeting Duration: Only meetings with duration > 0 minutes are included
+Participant Validation: Participants with valid join_time and leave_time only
+Organization Mapping: Derived from user company field via host relationships
+Feature Usage: Only positive usage_count values are aggregated
+Quality Scoring: Weighted average based on session duration
