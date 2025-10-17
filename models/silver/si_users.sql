@@ -1,9 +1,7 @@
 {{ config(
     materialized='incremental',
     unique_key='user_id',
-    on_schema_change='sync_all_columns',
-    pre_hook="INSERT INTO {{ ref('si_process_audit') }} (execution_id, pipeline_name, start_time, status, source_system, target_system, process_type, load_date, update_date) SELECT '{{ invocation_id }}', 'si_users_transform', current_timestamp(), 'STARTED', 'Bronze', 'Silver', 'ETL', current_date(), current_date() WHERE '{{ this.name }}' != 'si_process_audit'",
-    post_hook="UPDATE {{ ref('si_process_audit') }} SET end_time = current_timestamp(), status = 'SUCCESS', records_processed = (SELECT COUNT(*) FROM {{ this }}), records_successful = (SELECT COUNT(*) FROM {{ this }}), processing_duration_seconds = DATEDIFF('second', start_time, current_timestamp()) WHERE execution_id = '{{ invocation_id }}' AND pipeline_name = 'si_users_transform' AND '{{ this.name }}' != 'si_process_audit'"
+    on_schema_change='sync_all_columns'
 ) }}
 
 -- Data Quality and Transformation Logic
@@ -64,5 +62,5 @@ valid_records AS (
 SELECT * FROM valid_records
 
 {% if is_incremental() %}
-    WHERE update_timestamp > (SELECT MAX(update_timestamp) FROM {{ this }})
+    WHERE update_timestamp > (SELECT COALESCE(MAX(update_timestamp), '1900-01-01'::timestamp) FROM {{ this }})
 {% endif %}
