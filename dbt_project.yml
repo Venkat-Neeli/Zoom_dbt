@@ -18,17 +18,13 @@ clean-targets:
 
 models:
   Zoom_Customer_Analytics:
-    +materialized: incremental
-    +on_schema_change: sync_all_columns
     bronze:
       +materialized: table
     silver:
       +materialized: incremental
-      +unique_key: "{{ var('unique_key', 'id') }}"
       +on_schema_change: sync_all_columns
-    gold:
-      +materialized: table
+      +unique_key: "{{ var('unique_key', 'id') }}"
 
 vars:
   start_date: '2020-01-01'
-  end_date: '2099-12-31'
+  end_date: '2030-12-31'
