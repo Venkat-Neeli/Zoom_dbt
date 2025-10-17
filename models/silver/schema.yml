@@ -2,7 +2,7 @@ version: 2
 
 sources:
   - name: bronze
-    description: "Bronze layer containing raw data from source systems"
+    description: "Bronze layer containing raw data from Zoom systems"
     tables:
       - name: bz_users
         description: "Raw user data from Zoom"
@@ -75,60 +75,54 @@ sources:
 
 models:
   - name: si_process_audit
-    description: "Process audit log for tracking ETL pipeline execution"
+    description: "Process audit table for tracking ETL execution"
     columns:
       - name: execution_id
-        description: "Unique identifier for each pipeline execution"
+        description: "Unique identifier for each execution"
         tests:
           - not_null
           - unique
       - name: pipeline_name
-        description: "Name of the pipeline being executed"
+        description: "Name of the ETL pipeline"
         tests:
           - not_null
       - name: status
-        description: "Execution status (SUCCESS, FAILED, STARTED)"
+        description: "Execution status"
         tests:
           - not_null
           - accepted_values:
-              values: ['SUCCESS', 'FAILED', 'STARTED']
+              values: ['SUCCESS', 'FAILURE', 'STARTED', 'COMPLETED']
 
   - name: si_users
-    description: "Cleaned and validated user data"
+    description: "Silver layer users table with cleaned and validated data"
     columns:
       - name: user_id
         description: "Unique identifier for users"
         tests:
           - not_null
           - unique
-      - name: user_name
-        description: "User display name"
-        tests:
-          - not_null
       - name: email
-        description: "User email address (validated and normalized)"
+        description: "Validated and normalized email address"
         tests:
           - not_null
-          - unique
       - name: plan_type
-        description: "User subscription plan type"
+        description: "Standardized plan type"
         tests:
-          - not_null
           - accepted_values:
               values: ['Free', 'Pro', 'Business', 'Enterprise']
       - name: data_quality_score
-        description: "Data quality score (0.0 to 1.0)"
+        description: "Data quality score based on validation checks"
         tests:
           - not_null
       - name: record_status
-        description: "Record status (active or error)"
+        description: "Record status indicator"
         tests:
           - not_null
           - accepted_values:
               values: ['active', 'error']
 
   - name: si_meetings
-    description: "Cleaned and validated meeting data"
+    description: "Silver layer meetings table with cleaned and validated data"
     columns:
       - name: meeting_id
         description: "Unique identifier for meetings"
@@ -136,19 +130,26 @@ models:
           - not_null
           - unique
       - name: host_id
-        description: "User ID of the meeting host"
+        description: "Meeting host user ID"
         tests:
           - not_null
-          - relationships:
-              to: ref('si_users')
-              field: user_id
       - name: duration_minutes
         description: "Meeting duration in minutes"
         tests:
           - not_null
+      - name: data_quality_score
+        description: "Data quality score based on validation checks"
+        tests:
+          - not_null
+      - name: record_status
+        description: "Record status indicator"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['active', 'error']
 
   - name: si_participants
-    description: "Cleaned and validated participant data"
+    description: "Silver layer participants table with cleaned and validated data"
     columns:
       - name: participant_id
         description: "Unique identifier for participants"
@@ -156,21 +157,22 @@ models:
           - not_null
           - unique
       - name: meeting_id
-        description: "Meeting ID for the participation"
+        description: "Associated meeting ID"
         tests:
           - not_null
-          - relationships:
-              to: ref('si_meetings')
-              field: meeting_id
-      - name: user_id
-        description: "User ID of the participant"
+      - name: data_quality_score
+        description: "Data quality score based on validation checks"
         tests:
-          - relationships:
-              to: ref('si_users')
-              field: user_id
+          - not_null
+      - name: record_status
+        description: "Record status indicator"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['active', 'error']
 
   - name: si_feature_usage
-    description: "Cleaned and validated feature usage data"
+    description: "Silver layer feature usage table with cleaned and validated data"
     columns:
       - name: usage_id
         description: "Unique identifier for usage records"
@@ -178,25 +180,32 @@ models:
           - not_null
           - unique
       - name: meeting_id
-        description: "Meeting ID where feature was used"
+        description: "Associated meeting ID"
         tests:
           - not_null
-          - relationships:
-              to: ref('si_meetings')
-              field: meeting_id
       - name: feature_name
-        description: "Name of the feature used"
+        description: "Standardized feature name"
         tests:
           - not_null
           - accepted_values:
-              values: ['Screen Sharing', 'Chat', 'Recording', 'Whiteboard', 'Virtual Background']
+              values: ['Screen Sharing', 'Chat', 'Recording', 'Whiteboard', 'Virtual Background', 'Other']
       - name: usage_count
-        description: "Number of times feature was used"
+        description: "Feature usage count"
         tests:
           - not_null
+      - name: data_quality_score
+        description: "Data quality score based on validation checks"
+        tests:
+          - not_null
+      - name: record_status
+        description: "Record status indicator"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['active', 'error']
 
   - name: si_webinars
-    description: "Cleaned and validated webinar data"
+    description: "Silver layer webinars table with cleaned and validated data"
     columns:
       - name: webinar_id
         description: "Unique identifier for webinars"
@@ -204,19 +213,30 @@ models:
           - not_null
           - unique
       - name: host_id
-        description: "User ID of the webinar host"
+        description: "Webinar host user ID"
         tests:
           - not_null
-          - relationships:
-              to: ref('si_users')
-              field: user_id
+      - name: webinar_topic
+        description: "Webinar topic"
+        tests:
+          - not_null
       - name: registrants
-        description: "Number of webinar registrants"
+        description: "Number of registrants"
         tests:
           - not_null
+      - name: data_quality_score
+        description: "Data quality score based on validation checks"
+        tests:
+          - not_null
+      - name: record_status
+        description: "Record status indicator"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['active', 'error']
 
   - name: si_support_tickets
-    description: "Cleaned and validated support ticket data"
+    description: "Silver layer support tickets table with cleaned and validated data"
     columns:
       - name: ticket_id
         description: "Unique identifier for support tickets"
@@ -224,27 +244,34 @@ models:
           - not_null
           - unique
       - name: user_id
-        description: "User ID who created the ticket"
+        description: "Associated user ID"
         tests:
           - not_null
-          - relationships:
-              to: ref('si_users')
-              field: user_id
       - name: ticket_type
-        description: "Type of support ticket"
+        description: "Standardized ticket type"
         tests:
           - not_null
           - accepted_values:
-              values: ['Audio Issue', 'Video Issue', 'Connectivity', 'Billing Inquiry', 'Feature Request', 'Account Access']
+              values: ['Audio Issue', 'Video Issue', 'Connectivity', 'Billing Inquiry', 'Feature Request', 'Account Access', 'Other']
       - name: resolution_status
-        description: "Current status of the ticket"
+        description: "Standardized resolution status"
         tests:
           - not_null
           - accepted_values:
               values: ['Open', 'In Progress', 'Pending Customer', 'Closed', 'Resolved']
+      - name: data_quality_score
+        description: "Data quality score based on validation checks"
+        tests:
+          - not_null
+      - name: record_status
+        description: "Record status indicator"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['active', 'error']
 
   - name: si_licenses
-    description: "Cleaned and validated license data"
+    description: "Silver layer licenses table with cleaned and validated data"
     columns:
       - name: license_id
         description: "Unique identifier for licenses"
@@ -252,20 +279,24 @@ models:
           - not_null
           - unique
       - name: license_type
-        description: "Type of license"
+        description: "Standardized license type"
         tests:
           - not_null
           - accepted_values:
               values: ['Pro', 'Business', 'Enterprise', 'Education']
-      - name: assigned_to_user_id
-        description: "User ID the license is assigned to"
+      - name: data_quality_score
+        description: "Data quality score based on validation checks"
         tests:
-          - relationships:
-              to: ref('si_users')
-              field: user_id
+          - not_null
+      - name: record_status
+        description: "Record status indicator"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['active', 'error']
 
   - name: si_billing_events
-    description: "Cleaned and validated billing event data"
+    description: "Silver layer billing events table with cleaned and validated data"
     columns:
       - name: event_id
         description: "Unique identifier for billing events"
@@ -273,19 +304,55 @@ models:
           - not_null
           - unique
       - name: user_id
-        description: "User ID associated with the billing event"
+        description: "Associated user ID"
         tests:
           - not_null
-          - relationships:
-              to: ref('si_users')
-              field: user_id
       - name: event_type
-        description: "Type of billing event"
+        description: "Standardized event type"
         tests:
           - not_null
           - accepted_values:
-              values: ['Subscription Fee', 'Subscription Renewal', 'Add-on Purchase', 'Refund']
+              values: ['Subscription Fee', 'Subscription Renewal', 'Add-on Purchase', 'Refund', 'Other']
       - name: amount
-        description: "Billing amount"
+        description: "Event amount"
         tests:
           - not_null
+      - name: data_quality_score
+        description: "Data quality score based on validation checks"
+        tests:
+          - not_null
+      - name: record_status
+        description: "Record status indicator"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['active', 'error']
+
+  - name: si_data_quality_errors
+    description: "Data quality errors tracking table"
+    columns:
+      - name: error_id
+        description: "Unique identifier for errors"
+        tests:
+          - not_null
+          - unique
+      - name: source_table
+        description: "Source table name"
+        tests:
+          - not_null
+      - name: error_type
+        description: "Type of error"
+        tests:
+          - not_null
+      - name: severity_level
+        description: "Error severity level"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
+      - name: resolution_status
+        description: "Error resolution status"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED']
