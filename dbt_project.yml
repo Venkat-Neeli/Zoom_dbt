@@ -1,0 +1,35 @@
+name: 'Zoom_Customer_Analytics'
+version: '1.0.0'
+config-version: 2
+
+profile: 'zoom_analytics'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  Zoom_Customer_Analytics:
+    gold:
+      +materialized: table
+      dimension:
+        +materialized: table
+        +cluster_by: ['load_date']
+      fact:
+        +materialized: table
+        +cluster_by: ['load_date']
+      aggregated:
+        +materialized: table
+        +cluster_by: ['load_date']
+
+vars:
+  source_schema: 'SILVER'
+  target_schema: 'GOLD'
