@@ -1,0 +1,148 @@
+version: 2
+
+sources:
+  - name: bronze
+    description: "Bronze layer containing raw data from source systems"
+    tables:
+      - name: bz_users
+        description: "Raw user data from Zoom"
+        columns:
+          - name: user_id
+            description: "Unique identifier for users"
+            tests:
+              - not_null
+              - unique
+          - name: email
+            description: "User email address"
+            tests:
+              - not_null
+      - name: bz_meetings
+        description: "Raw meeting data from Zoom"
+        columns:
+          - name: meeting_id
+            description: "Unique identifier for meetings"
+            tests:
+              - not_null
+              - unique
+      - name: bz_participants
+        description: "Raw participant data from Zoom"
+        columns:
+          - name: participant_id
+            description: "Unique identifier for participants"
+            tests:
+              - not_null
+              - unique
+      - name: bz_feature_usage
+        description: "Raw feature usage data from Zoom"
+        columns:
+          - name: usage_id
+            description: "Unique identifier for usage records"
+            tests:
+              - not_null
+              - unique
+      - name: bz_webinars
+        description: "Raw webinar data from Zoom"
+        columns:
+          - name: webinar_id
+            description: "Unique identifier for webinars"
+            tests:
+              - not_null
+              - unique
+      - name: bz_support_tickets
+        description: "Raw support ticket data from Zoom"
+        columns:
+          - name: ticket_id
+            description: "Unique identifier for support tickets"
+            tests:
+              - not_null
+              - unique
+      - name: bz_licenses
+        description: "Raw license data from Zoom"
+        columns:
+          - name: license_id
+            description: "Unique identifier for licenses"
+            tests:
+              - not_null
+              - unique
+      - name: bz_billing_events
+        description: "Raw billing event data from Zoom"
+        columns:
+          - name: event_id
+            description: "Unique identifier for billing events"
+            tests:
+              - not_null
+              - unique
+
+models:
+  - name: si_process_audit
+    description: "Process audit log for tracking ETL pipeline execution"
+    columns:
+      - name: execution_id
+        description: "Unique identifier for each pipeline execution"
+        tests:
+          - not_null
+          - unique
+      - name: pipeline_name
+        description: "Name of the pipeline being executed"
+        tests:
+          - not_null
+      - name: status
+        description: "Execution status (SUCCESS, FAILED, STARTED)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['SUCCESS', 'FAILED', 'STARTED']
+
+  - name: si_users
+    description: "Cleaned and validated user data"
+    columns:
+      - name: user_id
+        description: "Unique identifier for users"
+        tests:
+          - not_null
+          - unique
+      - name: user_name
+        description: "User display name"
+        tests:
+          - not_null
+      - name: email
+        description: "User email address (validated and normalized)"
+        tests:
+          - not_null
+          - unique
+      - name: plan_type
+        description: "User subscription plan type"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Free', 'Pro', 'Business', 'Enterprise']
+      - name: data_quality_score
+        description: "Data quality score (0.0 to 1.0)"
+        tests:
+          - not_null
+      - name: record_status
+        description: "Record status (active or error)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['active', 'error']
+
+  - name: si_meetings
+    description: "Cleaned and validated meeting data"
+    columns:
+      - name: meeting_id
+        description: "Unique identifier for meetings"
+        tests:
+          - not_null
+          - unique
+      - name: host_id
+        description: "User ID of the meeting host"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('si_users')
+              field: user_id
+      - name: duration_minutes
+        description: "Meeting duration in minutes"
+        tests:
+          - not_null
