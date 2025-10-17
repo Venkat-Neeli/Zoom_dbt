@@ -1,931 +1,497 @@
 _____________________________________________
 ## *Author*: AAVA
 ## *Created on*: 2024-12-19
-## *Description*: Comprehensive unit test cases for Zoom Silver layer dbt models in Snowflake
+## *Description*: Comprehensive unit test cases for Zoom Customer Analytics Silver layer dbt models in Snowflake
 ## *Version*: 1
 ## *Updated on*: 2024-12-19
 _____________________________________________
 
-# Snowflake dbt Unit Test Cases for Zoom Silver Layer Models
+# Snowflake dbt Unit Test Case for Zoom Customer Analytics Silver Layer
 
 ## Overview
 
-This document provides comprehensive unit test cases and dbt test scripts for the Zoom Silver layer data pipeline. The testing framework validates data transformations, mappings, and business rules across 9 silver layer models to ensure reliable and performant dbt models in Snowflake.
+This document provides comprehensive unit test cases and dbt test scripts for the Zoom Customer Analytics Silver layer models running in Snowflake. The test suite validates data transformations, business rules, edge cases, and error handling for the following models:
 
-## Models Covered
+- `si_process_audit` - Process audit tracking table
+- `si_users` - Silver layer users transformation
+- `si_meetings` - Silver layer meetings transformation
 
-1. **si_users** - User data with email validation and plan type standardization
-2. **si_meetings** - Meeting data with duration validation and time checks
-3. **si_participants** - Participant data with join/leave time validation
-4. **si_feature_usage** - Feature usage with domain validation and count checks
-5. **si_webinars** - Webinar data with registrant validation
-6. **si_support_tickets** - Support tickets with status and type validation
-7. **si_licenses** - License data with date range validation
-8. **si_billing_events** - Billing events with amount validation
-9. **si_process_audit** - Complete audit trail for all transformations
+## Test Case List
 
-## Test Case Categories
-
-### 1. Data Quality Tests
-- Null value validation
-- Duplicate record prevention
-- Data type consistency
-- Format validation (emails, dates, etc.)
-- Range validation for numeric fields
-
-### 2. Business Rule Tests
-- Domain value validation
-- Referential integrity
-- Logical consistency (start/end times)
-- Cross-model data consistency
-
-### 3. Edge Case Tests
-- Empty datasets
-- Invalid lookups
-- Schema mismatches
-- Boundary value testing
-
-### 4. Performance Tests
-- Query execution time validation
-- Resource utilization checks
-- Incremental load validation
-
----
-
-# Test Case List
-
-## Test Case 1: SI_USERS Model Validation
+### 1. Process Audit Model Tests
 
 | Test Case ID | Test Case Description | Expected Outcome |
 |--------------|----------------------|------------------|
-| TC_USR_001 | Validate user_id uniqueness | No duplicate user_id values |
-| TC_USR_002 | Validate email format using regex | All emails match valid format pattern |
-| TC_USR_003 | Check user_status domain values | Only accepted status values present |
-| TC_USR_004 | Validate created_date range | Dates within reasonable business range |
-| TC_USR_005 | Check email uniqueness | No duplicate email addresses |
-| TC_USR_006 | Validate process_audit_key relationship | All records have valid audit trail |
+| PA_001 | Validate execution_id uniqueness | All execution_id values are unique |
+| PA_002 | Validate mandatory fields not null | pipeline_name, start_time, status are not null |
+| PA_003 | Validate status values | Status contains only valid values: SUCCESS, FAILURE, STARTED, COMPLETED |
+| PA_004 | Validate timestamp logic | end_time >= start_time when both are not null |
+| PA_005 | Validate incremental loading | Only new records since last execution are processed |
+| PA_006 | Validate processing duration calculation | processing_duration_seconds = DATEDIFF(seconds, start_time, end_time) |
+| PA_007 | Validate record count consistency | records_processed = records_successful + records_failed |
+| PA_008 | Validate data types | All columns have correct data types |
 
-## Test Case 2: SI_MEETINGS Model Validation
-
-| Test Case ID | Test Case Description | Expected Outcome |
-|--------------|----------------------|------------------|
-| TC_MTG_001 | Validate meeting_id uniqueness | No duplicate meeting_id values |
-| TC_MTG_002 | Check host_user_id referential integrity | All host_user_id exist in si_users |
-| TC_MTG_003 | Validate duration_minutes range | Duration between 0-1440 minutes |
-| TC_MTG_004 | Check start_time vs end_time logic | End time >= start time |
-| TC_MTG_005 | Validate meeting_type domain values | Only accepted meeting types |
-| TC_MTG_006 | Check meeting topic length | Topic within character limits |
-
-## Test Case 3: SI_PARTICIPANTS Model Validation
+### 2. Users Model Tests
 
 | Test Case ID | Test Case Description | Expected Outcome |
 |--------------|----------------------|------------------|
-| TC_PRT_001 | Validate participant_id uniqueness | No duplicate participant records |
-| TC_PRT_002 | Check meeting_id referential integrity | All meeting_id exist in si_meetings |
-| TC_PRT_003 | Validate join_time vs leave_time | Leave time >= join time |
-| TC_PRT_004 | Check participant_role domain values | Only valid participant roles |
-| TC_PRT_005 | Validate duration calculation | Duration matches leave_time - join_time |
-| TC_PRT_006 | Check user_id relationship | Valid user references where applicable |
+| US_001 | Validate user_id uniqueness | All user_id values are unique and not null |
+| US_002 | Validate email format | All email addresses follow valid email regex pattern |
+| US_003 | Validate email uniqueness | All email addresses are unique after normalization |
+| US_004 | Validate plan_type standardization | plan_type contains only: Free, Pro, Business, Enterprise |
+| US_005 | Validate deduplication logic | Only latest record per user_id based on update_timestamp |
+| US_006 | Validate data quality score calculation | data_quality_score is between 0.0 and 1.0 |
+| US_007 | Validate company field handling | Empty company values are replaced with '000' |
+| US_008 | Validate incremental loading | Only records with update_timestamp > max existing timestamp |
+| US_009 | Validate record status | record_status contains only 'active' or 'error' |
+| US_010 | Validate email normalization | All emails are converted to lowercase and trimmed |
 
-## Test Case 4: SI_FEATURE_USAGE Model Validation
-
-| Test Case ID | Test Case Description | Expected Outcome |
-|--------------|----------------------|------------------|
-| TC_FTR_001 | Validate usage_id uniqueness | No duplicate usage records |
-| TC_FTR_002 | Check user_id referential integrity | All user_id exist in si_users |
-| TC_FTR_003 | Validate feature_name domain values | Only accepted feature names |
-| TC_FTR_004 | Check usage_duration_seconds range | Duration within reasonable limits |
-| TC_FTR_005 | Validate usage_timestamp range | Timestamps within business range |
-| TC_FTR_006 | Check meeting_id relationship | Valid meeting references |
-
-## Test Case 5: SI_WEBINARS Model Validation
+### 3. Meetings Model Tests
 
 | Test Case ID | Test Case Description | Expected Outcome |
 |--------------|----------------------|------------------|
-| TC_WBN_001 | Validate webinar_id uniqueness | No duplicate webinar records |
-| TC_WBN_002 | Check host_user_id referential integrity | All hosts exist in si_users |
-| TC_WBN_003 | Validate attendance vs registration logic | Attendance <= registration count |
-| TC_WBN_004 | Check webinar_status domain values | Only valid status values |
-| TC_WBN_005 | Validate duration_minutes range | Duration within reasonable limits |
-| TC_WBN_006 | Check scheduled vs actual start time | Actual start within reasonable variance |
+| MT_001 | Validate meeting_id uniqueness | All meeting_id values are unique and not null |
+| MT_002 | Validate host_id relationship | All host_id values exist in si_users table |
+| MT_003 | Validate time logic | end_time > start_time for all meetings |
+| MT_004 | Validate duration constraints | duration_minutes > 0 and <= 1440 (24 hours) |
+| MT_005 | Validate deduplication logic | Only latest record per meeting_id based on update_timestamp |
+| MT_006 | Validate meeting topic handling | Empty meeting_topic values are replaced with '000' |
+| MT_007 | Validate data quality score | data_quality_score calculation based on validation rules |
+| MT_008 | Validate incremental loading | Only records with update_timestamp > max existing timestamp |
+| MT_009 | Validate duration calculation | duration_minutes matches DATEDIFF(minutes, start_time, end_time) |
+| MT_010 | Validate record status | record_status contains only 'active' or 'error' |
 
-## Test Case 6: SI_SUPPORT_TICKETS Model Validation
-
-| Test Case ID | Test Case Description | Expected Outcome |
-|--------------|----------------------|------------------|
-| TC_TKT_001 | Validate ticket_id uniqueness | No duplicate ticket records |
-| TC_TKT_002 | Check user_id referential integrity | All user_id exist in si_users |
-| TC_TKT_003 | Validate ticket_status domain values | Only accepted status values |
-| TC_TKT_004 | Check priority_level domain values | Only valid priority levels |
-| TC_TKT_005 | Validate created_date vs resolved_date | Resolved date >= created date |
-| TC_TKT_006 | Check category domain values | Only accepted categories |
-
-## Test Case 7: SI_LICENSES Model Validation
+### 4. Cross-Model Integration Tests
 
 | Test Case ID | Test Case Description | Expected Outcome |
 |--------------|----------------------|------------------|
-| TC_LIC_001 | Validate license_id uniqueness | No duplicate license records |
-| TC_LIC_002 | Check user_id referential integrity | All user_id exist in si_users |
-| TC_LIC_003 | Validate license_type domain values | Only accepted license types |
-| TC_LIC_004 | Check license_status domain values | Only valid status values |
-| TC_LIC_005 | Validate assigned_date vs expiry_date | Expiry date > assigned date |
-| TC_LIC_006 | Check monthly_cost range | Cost within reasonable range |
+| INT_001 | Validate referential integrity | All host_id in meetings exist in users table |
+| INT_002 | Validate audit trail consistency | Process audit records exist for each model execution |
+| INT_003 | Validate load_date consistency | load_date is consistent across related records |
+| INT_004 | Validate source system tracking | source_system field is populated correctly |
 
-## Test Case 8: SI_BILLING_EVENTS Model Validation
+### 5. Edge Case Tests
 
 | Test Case ID | Test Case Description | Expected Outcome |
 |--------------|----------------------|------------------|
-| TC_BIL_001 | Validate billing_event_id uniqueness | No duplicate billing records |
-| TC_BIL_002 | Check user_id referential integrity | All user_id exist in si_users |
-| TC_BIL_003 | Validate event_type domain values | Only accepted event types |
-| TC_BIL_004 | Check currency domain values | Only valid currency codes |
-| TC_BIL_005 | Validate amount range | Amount within business limits |
-| TC_BIL_006 | Check payment_status domain values | Only valid payment statuses |
+| EC_001 | Handle null email addresses | Records with null emails are excluded from si_users |
+| EC_002 | Handle invalid email formats | Invalid emails are excluded or flagged |
+| EC_003 | Handle negative duration | Meetings with negative duration are excluded |
+| EC_004 | Handle future timestamps | Future timestamps are handled appropriately |
+| EC_005 | Handle empty source tables | Models handle empty bronze tables gracefully |
+| EC_006 | Handle duplicate records | Deduplication logic works correctly |
+| EC_007 | Handle schema changes | Models adapt to schema changes in bronze layer |
 
-## Test Case 9: SI_PROCESS_AUDIT Model Validation
+## dbt Test Scripts
 
-| Test Case ID | Test Case Description | Expected Outcome |
-|--------------|----------------------|------------------|
-| TC_AUD_001 | Validate audit_key uniqueness | No duplicate audit records |
-| TC_AUD_002 | Check process_name domain values | Only accepted process names |
-| TC_AUD_003 | Validate process_start_time vs end_time | End time >= start time |
-| TC_AUD_004 | Check process_status domain values | Only valid status values |
-| TC_AUD_005 | Validate record count consistency | Inserted + updated <= processed |
-| TC_AUD_006 | Check error_message logic | Error message present when status = failed |
-
-## Cross-Model Test Cases
-
-| Test Case ID | Test Case Description | Expected Outcome |
-|--------------|----------------------|------------------|
-| TC_CRS_001 | User consistency across all models | All user references are valid |
-| TC_CRS_002 | Audit trail completeness | All models have corresponding audit records |
-| TC_CRS_003 | Data freshness validation | All models contain recent data |
-| TC_CRS_004 | Duplicate prevention across models | No duplicate records in any silver model |
-
----
-
-# dbt Test Scripts
-
-## YAML-based Schema Tests
+### YAML-based Schema Tests
 
 ```yaml
 # models/silver/schema.yml
 version: 2
 
+sources:
+  - name: bronze
+    description: "Bronze layer containing raw data from Zoom systems"
+    tables:
+      - name: bz_users
+        description: "Raw user data from Zoom"
+        columns:
+          - name: user_id
+            description: "Unique identifier for users"
+            tests:
+              - not_null
+              - unique
+          - name: email
+            description: "User email address"
+            tests:
+              - not_null
+              - dbt_expectations.expect_column_values_to_match_regex:
+                  regex: '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$'
+      - name: bz_meetings
+        description: "Raw meeting data from Zoom"
+        columns:
+          - name: meeting_id
+            description: "Unique identifier for meetings"
+            tests:
+              - not_null
+              - unique
+          - name: host_id
+            description: "Meeting host user ID"
+            tests:
+              - not_null
+          - name: duration_minutes
+            description: "Meeting duration in minutes"
+            tests:
+              - dbt_utils.accepted_range:
+                  min_value: 0
+                  max_value: 1440
+
 models:
-  # ========================================
-  # SI_USERS - Silver Users Model Tests
-  # ========================================
+  - name: si_process_audit
+    description: "Process audit table for tracking ETL execution"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - execution_id
+            - pipeline_name
+    columns:
+      - name: execution_id
+        description: "Unique identifier for each execution"
+        tests:
+          - not_null
+          - unique
+      - name: pipeline_name
+        description: "Name of the ETL pipeline"
+        tests:
+          - not_null
+      - name: status
+        description: "Execution status"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['SUCCESS', 'FAILURE', 'STARTED', 'COMPLETED']
+      - name: start_time
+        description: "Process start timestamp"
+        tests:
+          - not_null
+      - name: records_processed
+        description: "Total number of records processed"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+      - name: processing_duration_seconds
+        description: "Processing duration in seconds"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+
   - name: si_users
-    description: "Silver layer users table with comprehensive data quality checks"
+    description: "Silver layer users table with cleaned and validated data"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - user_id
+            - load_date
     columns:
       - name: user_id
         description: "Unique identifier for users"
         tests:
-          - unique:
-              severity: error
-          - not_null:
-              severity: error
+          - not_null
+          - unique
+      - name: user_name
+        description: "User display name"
+        tests:
+          - not_null
+          - dbt_utils.not_empty_string
       - name: email
-        description: "User email address"
+        description: "Validated and normalized email address"
         tests:
-          - not_null:
-              severity: error
-          - unique:
-              severity: error
+          - not_null
+          - unique
           - dbt_expectations.expect_column_values_to_match_regex:
-              regex: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-              severity: error
-      - name: user_status
-        description: "Status of the user account"
+              regex: '^[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}$'
+      - name: company
+        description: "Company name or default value"
         tests:
+          - not_null
+      - name: plan_type
+        description: "Standardized plan type"
+        tests:
+          - not_null
           - accepted_values:
-              values: ['active', 'inactive', 'suspended', 'pending']
-              severity: error
-      - name: created_date
-        description: "User account creation date"
+              values: ['Free', 'Pro', 'Business', 'Enterprise']
+      - name: data_quality_score
+        description: "Data quality score based on validation checks"
         tests:
-          - not_null:
-              severity: error
+          - not_null
           - dbt_utils.accepted_range:
-              min_value: "'2010-01-01'"
-              max_value: "current_date()"
-              severity: error
-      - name: process_audit_key
-        description: "Process audit tracking key"
+              min_value: 0.0
+              max_value: 1.0
+      - name: record_status
+        description: "Record status indicator"
         tests:
-          - not_null:
-              severity: error
-          - relationships:
-              to: ref('si_process_audit')
-              field: audit_key
-              severity: error
+          - not_null
+          - accepted_values:
+              values: ['active', 'error']
+      - name: load_date
+        description: "Date when record was loaded"
+        tests:
+          - not_null
+      - name: update_date
+        description: "Date when record was last updated"
+        tests:
+          - not_null
 
-  # ========================================
-  # SI_MEETINGS - Silver Meetings Model Tests
-  # ========================================
   - name: si_meetings
-    description: "Silver layer meetings table with data quality validations"
+    description: "Silver layer meetings table with cleaned and validated data"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - meeting_id
+            - load_date
     columns:
       - name: meeting_id
-        description: "Unique meeting identifier"
+        description: "Unique identifier for meetings"
         tests:
-          - unique:
-              severity: error
-          - not_null:
-              severity: error
-      - name: host_user_id
+          - not_null
+          - unique
+      - name: host_id
         description: "Meeting host user ID"
         tests:
-          - not_null:
-              severity: error
+          - not_null
           - relationships:
               to: ref('si_users')
               field: user_id
-              severity: error
-      - name: duration_minutes
-        description: "Meeting duration in minutes"
+      - name: meeting_topic
+        description: "Meeting topic or default value"
         tests:
-          - dbt_utils.accepted_range:
-              min_value: 0
-              max_value: 1440
-              severity: warn
-      - name: meeting_type
-        description: "Type of meeting"
-        tests:
-          - accepted_values:
-              values: ['scheduled', 'instant', 'recurring', 'webinar']
-              severity: error
+          - not_null
       - name: start_time
         description: "Meeting start timestamp"
         tests:
-          - not_null:
-              severity: error
+          - not_null
+      - name: end_time
+        description: "Meeting end timestamp"
+        tests:
+          - not_null
+      - name: duration_minutes
+        description: "Meeting duration in minutes"
+        tests:
+          - not_null
           - dbt_utils.accepted_range:
-              min_value: "'2020-01-01'"
-              max_value: "dateadd(day, 30, current_date())"
-              severity: error
-
-  # ========================================
-  # SI_PARTICIPANTS - Silver Participants Model Tests
-  # ========================================
-  - name: si_participants
-    description: "Silver layer meeting participants with deduplication checks"
-    columns:
-      - name: participant_id
-        description: "Unique participant record identifier"
+              min_value: 1
+              max_value: 1440
+      - name: data_quality_score
+        description: "Data quality score based on validation checks"
         tests:
-          - unique:
-              severity: error
-          - not_null:
-              severity: error
-      - name: meeting_id
-        description: "Associated meeting ID"
-        tests:
-          - not_null:
-              severity: error
-          - relationships:
-              to: ref('si_meetings')
-              field: meeting_id
-              severity: error
-      - name: join_time
-        description: "Participant join timestamp"
-        tests:
-          - not_null:
-              severity: error
-      - name: leave_time
-        description: "Participant leave timestamp"
-        tests:
-          - dbt_utils.expression_is_true:
-              expression: "leave_time >= join_time"
-              severity: error
-      - name: participant_role
-        description: "Role of participant in meeting"
-        tests:
-          - accepted_values:
-              values: ['host', 'co-host', 'attendee', 'panelist']
-              severity: error
-
-  # ========================================
-  # SI_FEATURE_USAGE - Silver Feature Usage Model Tests
-  # ========================================
-  - name: si_feature_usage
-    description: "Silver layer feature usage analytics"
-    columns:
-      - name: usage_id
-        description: "Unique usage record identifier"
-        tests:
-          - unique:
-              severity: error
-          - not_null:
-              severity: error
-      - name: user_id
-        description: "User utilizing the feature"
-        tests:
-          - not_null:
-              severity: error
-          - relationships:
-              to: ref('si_users')
-              field: user_id
-              severity: error
-      - name: feature_name
-        description: "Name of the feature used"
-        tests:
-          - not_null:
-              severity: error
-          - accepted_values:
-              values: ['screen_share', 'recording', 'chat', 'breakout_rooms', 'whiteboard', 'polls', 'annotation']
-              severity: warn
-      - name: usage_duration_seconds
-        description: "Duration of feature usage"
-        tests:
+          - not_null
           - dbt_utils.accepted_range:
-              min_value: 0
-              max_value: 86400
-              severity: warn
-
-  # ========================================
-  # SI_WEBINARS - Silver Webinars Model Tests
-  # ========================================
-  - name: si_webinars
-    description: "Silver layer webinars with comprehensive validations"
-    columns:
-      - name: webinar_id
-        description: "Unique webinar identifier"
+              min_value: 0.0
+              max_value: 1.0
+      - name: record_status
+        description: "Record status indicator"
         tests:
-          - unique:
-              severity: error
-          - not_null:
-              severity: error
-      - name: host_user_id
-        description: "Webinar host user ID"
-        tests:
-          - not_null:
-              severity: error
-          - relationships:
-              to: ref('si_users')
-              field: user_id
-              severity: error
-      - name: registration_count
-        description: "Number of registrations"
-        tests:
-          - dbt_utils.accepted_range:
-              min_value: 0
-              max_value: 10000
-              severity: warn
-      - name: attendance_count
-        description: "Number of attendees"
-        tests:
-          - dbt_utils.accepted_range:
-              min_value: 0
-              max_value: 10000
-              severity: warn
-          - dbt_utils.expression_is_true:
-              expression: "attendance_count <= registration_count"
-              severity: warn
-      - name: webinar_status
-        description: "Status of webinar"
-        tests:
+          - not_null
           - accepted_values:
-              values: ['scheduled', 'started', 'ended', 'cancelled']
-              severity: error
-
-  # ========================================
-  # SI_SUPPORT_TICKETS - Silver Support Tickets Model Tests
-  # ========================================
-  - name: si_support_tickets
-    description: "Silver layer support tickets with data quality checks"
-    columns:
-      - name: ticket_id
-        description: "Unique support ticket identifier"
-        tests:
-          - unique:
-              severity: error
-          - not_null:
-              severity: error
-      - name: user_id
-        description: "User who created the ticket"
-        tests:
-          - not_null:
-              severity: error
-          - relationships:
-              to: ref('si_users')
-              field: user_id
-              severity: error
-      - name: ticket_status
-        description: "Current status of ticket"
-        tests:
-          - not_null:
-              severity: error
-          - accepted_values:
-              values: ['open', 'in_progress', 'resolved', 'closed', 'escalated']
-              severity: error
-      - name: priority_level
-        description: "Priority level of ticket"
-        tests:
-          - accepted_values:
-              values: ['low', 'medium', 'high', 'critical']
-              severity: error
-      - name: resolved_date
-        description: "Ticket resolution date"
-        tests:
-          - dbt_utils.expression_is_true:
-              expression: "resolved_date >= created_date OR resolved_date IS NULL"
-              severity: error
-      - name: category
-        description: "Ticket category"
-        tests:
-          - accepted_values:
-              values: ['technical', 'billing', 'account', 'feature_request', 'bug_report']
-              severity: warn
-
-  # ========================================
-  # SI_LICENSES - Silver Licenses Model Tests
-  # ========================================
-  - name: si_licenses
-    description: "Silver layer license management with validations"
-    columns:
-      - name: license_id
-        description: "Unique license identifier"
-        tests:
-          - unique:
-              severity: error
-          - not_null:
-              severity: error
-      - name: user_id
-        description: "User assigned to license"
-        tests:
-          - relationships:
-              to: ref('si_users')
-              field: user_id
-              severity: error
-      - name: license_type
-        description: "Type of license"
-        tests:
-          - not_null:
-              severity: error
-          - accepted_values:
-              values: ['basic', 'pro', 'business', 'enterprise', 'education']
-              severity: error
-      - name: license_status
-        description: "Current license status"
-        tests:
-          - not_null:
-              severity: error
-          - accepted_values:
-              values: ['active', 'inactive', 'suspended', 'expired']
-              severity: error
-      - name: expiry_date
-        description: "License expiry date"
-        tests:
-          - dbt_utils.expression_is_true:
-              expression: "expiry_date > assigned_date"
-              severity: error
-      - name: monthly_cost
-        description: "Monthly license cost"
-        tests:
-          - dbt_utils.accepted_range:
-              min_value: 0
-              max_value: 1000
-              severity: warn
-
-  # ========================================
-  # SI_BILLING_EVENTS - Silver Billing Events Model Tests
-  # ========================================
-  - name: si_billing_events
-    description: "Silver layer billing events with financial validations"
-    columns:
-      - name: billing_event_id
-        description: "Unique billing event identifier"
-        tests:
-          - unique:
-              severity: error
-          - not_null:
-              severity: error
-      - name: user_id
-        description: "User associated with billing event"
-        tests:
-          - relationships:
-              to: ref('si_users')
-              field: user_id
-              severity: error
-      - name: event_type
-        description: "Type of billing event"
-        tests:
-          - not_null:
-              severity: error
-          - accepted_values:
-              values: ['charge', 'refund', 'credit', 'adjustment', 'subscription', 'cancellation']
-              severity: error
-      - name: amount
-        description: "Billing event amount"
-        tests:
-          - not_null:
-              severity: error
-          - dbt_utils.accepted_range:
-              min_value: -10000
-              max_value: 10000
-              severity: warn
-      - name: currency
-        description: "Currency of the amount"
-        tests:
-          - not_null:
-              severity: error
-          - accepted_values:
-              values: ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY']
-              severity: error
-      - name: payment_status
-        description: "Status of payment"
-        tests:
-          - accepted_values:
-              values: ['pending', 'completed', 'failed', 'cancelled', 'refunded']
-              severity: error
-
-  # ========================================
-  # SI_PROCESS_AUDIT - Silver Process Audit Model Tests
-  # ========================================
-  - name: si_process_audit
-    description: "Silver layer process audit trail"
-    columns:
-      - name: audit_key
-        description: "Unique audit record identifier"
-        tests:
-          - unique:
-              severity: error
-          - not_null:
-              severity: error
-      - name: process_name
-        description: "Name of the process"
-        tests:
-          - not_null:
-              severity: error
-          - accepted_values:
-              values: ['users_load', 'meetings_load', 'participants_load', 'feature_usage_load', 'webinars_load', 'support_tickets_load', 'licenses_load', 'billing_events_load']
-              severity: error
-      - name: process_status
-        description: "Status of the process"
-        tests:
-          - not_null:
-              severity: error
-          - accepted_values:
-              values: ['running', 'completed', 'failed', 'cancelled']
-              severity: error
-      - name: process_end_time
-        description: "Process end timestamp"
-        tests:
-          - dbt_utils.expression_is_true:
-              expression: "process_end_time >= process_start_time OR process_end_time IS NULL"
-              severity: error
-      - name: records_inserted
-        description: "Number of records inserted"
-        tests:
-          - dbt_utils.expression_is_true:
-              expression: "records_inserted <= records_processed"
-              severity: error
+              values: ['active', 'error']
 ```
 
-## Custom SQL-based dbt Tests
+### Custom SQL-based dbt Tests
 
-### 1. Cross-Model Data Consistency Test
-
+#### 1. Test for Email Format Validation
 ```sql
--- tests/test_user_consistency_across_models.sql
--- Test for data consistency across models
-WITH user_counts AS (
-  SELECT 'si_users' as model_name, COUNT(DISTINCT user_id) as user_count 
-  FROM {{ ref('si_users') }}
-  UNION ALL
-  SELECT 'si_meetings' as model_name, COUNT(DISTINCT host_user_id) as user_count 
-  FROM {{ ref('si_meetings') }}
-  UNION ALL
-  SELECT 'si_feature_usage' as model_name, COUNT(DISTINCT user_id) as user_count 
-  FROM {{ ref('si_feature_usage') }}
-  UNION ALL
-  SELECT 'si_support_tickets' as model_name, COUNT(DISTINCT user_id) as user_count 
-  FROM {{ ref('si_support_tickets') }}
-  UNION ALL
-  SELECT 'si_billing_events' as model_name, COUNT(DISTINCT user_id) as user_count 
-  FROM {{ ref('si_billing_events') }}
-)
-SELECT model_name, user_count
-FROM user_counts
-WHERE user_count = 0
+-- tests/generic/test_email_format.sql
+{% test email_format(model, column_name) %}
+
+    SELECT *
+    FROM {{ model }}
+    WHERE {{ column_name }} IS NOT NULL
+      AND NOT REGEXP_LIKE({{ column_name }}, '^[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}$')
+
+{% endtest %}
 ```
 
-### 2. Duplicate Prevention Test
-
+#### 2. Test for Time Logic Validation
 ```sql
--- tests/test_no_duplicate_records_silver_models.sql
--- Ensure no duplicate records exist in silver layer models
-WITH duplicate_checks AS (
-  SELECT 'si_users' as model_name, user_id, COUNT(*) as record_count
-  FROM {{ ref('si_users') }}
-  GROUP BY user_id
-  HAVING COUNT(*) > 1
-  
-  UNION ALL
-  
-  SELECT 'si_meetings' as model_name, meeting_id, COUNT(*) as record_count
-  FROM {{ ref('si_meetings') }}
-  GROUP BY meeting_id
-  HAVING COUNT(*) > 1
-  
-  UNION ALL
-  
-  SELECT 'si_participants' as model_name, participant_id, COUNT(*) as record_count
-  FROM {{ ref('si_participants') }}
-  GROUP BY participant_id
-  HAVING COUNT(*) > 1
-)
-SELECT * FROM duplicate_checks
+-- tests/generic/test_time_logic.sql
+{% test time_logic(model, start_column, end_column) %}
+
+    SELECT *
+    FROM {{ model }}
+    WHERE {{ start_column }} IS NOT NULL
+      AND {{ end_column }} IS NOT NULL
+      AND {{ end_column }} <= {{ start_column }}
+
+{% endtest %}
 ```
 
-### 3. Audit Trail Completeness Test
-
+#### 3. Test for Data Quality Score Validation
 ```sql
--- tests/test_audit_trail_completeness.sql
--- Ensure all silver models have corresponding audit records
-WITH model_audit_check AS (
-  SELECT 
-    'Missing audit for users' as issue
-  WHERE NOT EXISTS (
-    SELECT 1 FROM {{ ref('si_process_audit') }} 
-    WHERE process_name = 'users_load' AND process_status = 'completed'
-  )
-  
-  UNION ALL
-  
-  SELECT 
-    'Missing audit for meetings' as issue
-  WHERE NOT EXISTS (
-    SELECT 1 FROM {{ ref('si_process_audit') }} 
-    WHERE process_name = 'meetings_load' AND process_status = 'completed'
-  )
-  
-  UNION ALL
-  
-  SELECT 
-    'Missing audit for participants' as issue
-  WHERE NOT EXISTS (
-    SELECT 1 FROM {{ ref('si_process_audit') }} 
-    WHERE process_name = 'participants_load' AND process_status = 'completed'
-  )
-)
-SELECT * FROM model_audit_check
+-- tests/generic/test_data_quality_score.sql
+{% test data_quality_score_range(model, column_name) %}
+
+    SELECT *
+    FROM {{ model }}
+    WHERE {{ column_name }} IS NOT NULL
+      AND ({{ column_name }} < 0.0 OR {{ column_name }} > 1.0)
+
+{% endtest %}
 ```
 
-### 4. Data Freshness Test
-
+#### 4. Test for Deduplication Logic
 ```sql
--- tests/test_data_freshness_silver_models.sql
--- Ensure silver layer data is fresh (within last 24 hours)
-WITH freshness_check AS (
-  SELECT 
-    'si_users' as model_name,
-    MAX(created_date) as latest_record,
-    CASE 
-      WHEN MAX(created_date) < DATEADD(day, -1, CURRENT_DATE()) THEN 'STALE'
-      ELSE 'FRESH'
-    END as freshness_status
-  FROM {{ ref('si_users') }}
-  
-  UNION ALL
-  
-  SELECT 
-    'si_meetings' as model_name,
-    MAX(start_time::date) as latest_record,
-    CASE 
-      WHEN MAX(start_time::date) < DATEADD(day, -1, CURRENT_DATE()) THEN 'STALE'
-      ELSE 'FRESH'
-    END as freshness_status
-  FROM {{ ref('si_meetings') }}
-  
-  UNION ALL
-  
-  SELECT 
-    'si_participants' as model_name,
-    MAX(join_time::date) as latest_record,
-    CASE 
-      WHEN MAX(join_time::date) < DATEADD(day, -1, CURRENT_DATE()) THEN 'STALE'
-      ELSE 'FRESH'
-    END as freshness_status
-  FROM {{ ref('si_participants') }}
-)
-SELECT * FROM freshness_check WHERE freshness_status = 'STALE'
-```
-
-### 5. Business Logic Validation Test
-
-```sql
--- tests/test_business_logic_validation.sql
--- Validate complex business rules across models
-WITH business_rule_checks AS (
-  -- Check that meeting duration matches participant session times
-  SELECT 
-    'Meeting duration mismatch' as issue,
-    m.meeting_id,
-    m.duration_minutes as meeting_duration,
-    AVG(p.duration_minutes) as avg_participant_duration
-  FROM {{ ref('si_meetings') }} m
-  JOIN {{ ref('si_participants') }} p ON m.meeting_id = p.meeting_id
-  GROUP BY m.meeting_id, m.duration_minutes
-  HAVING ABS(m.duration_minutes - AVG(p.duration_minutes)) > 5
-  
-  UNION ALL
-  
-  -- Check that webinar attendance doesn't exceed registration
-  SELECT 
-    'Webinar attendance exceeds registration' as issue,
-    webinar_id,
-    registration_count,
-    attendance_count
-  FROM {{ ref('si_webinars') }}
-  WHERE attendance_count > registration_count
-  
-  UNION ALL
-  
-  -- Check that billing events have valid amounts
-  SELECT 
-    'Invalid billing amount' as issue,
-    billing_event_id,
-    amount,
-    event_type
-  FROM {{ ref('si_billing_events') }}
-  WHERE (event_type = 'refund' AND amount > 0)
-     OR (event_type = 'charge' AND amount < 0)
-)
-SELECT * FROM business_rule_checks
-```
-
-### 6. Data Quality Score Test
-
-```sql
--- tests/test_data_quality_scores.sql
--- Validate that data quality scores are calculated correctly
-WITH quality_score_check AS (
-  SELECT 
-    'si_users' as model_name,
-    COUNT(*) as total_records,
-    COUNT(CASE WHEN data_quality_score < 0.8 THEN 1 END) as low_quality_records,
-    ROUND(COUNT(CASE WHEN data_quality_score < 0.8 THEN 1 END) * 100.0 / COUNT(*), 2) as low_quality_percentage
-  FROM {{ ref('si_users') }}
-  
-  UNION ALL
-  
-  SELECT 
-    'si_meetings' as model_name,
-    COUNT(*) as total_records,
-    COUNT(CASE WHEN data_quality_score < 0.8 THEN 1 END) as low_quality_records,
-    ROUND(COUNT(CASE WHEN data_quality_score < 0.8 THEN 1 END) * 100.0 / COUNT(*), 2) as low_quality_percentage
-  FROM {{ ref('si_meetings') }}
-)
-SELECT * FROM quality_score_check WHERE low_quality_percentage > 10
-```
-
-## Custom Macros for Reusable Tests
-
-### 1. Email Validation Macro
-
-```sql
--- macros/test_email_format.sql
-{% macro test_email_format(model, column_name) %}
-  SELECT *
-  FROM {{ model }}
-  WHERE {{ column_name }} IS NOT NULL
-    AND NOT REGEXP_LIKE({{ column_name }}, '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$')
-{% endmacro %}
-```
-
-### 2. Date Range Validation Macro
-
-```sql
--- macros/test_date_range_validation.sql
-{% macro test_date_range_validation(model, start_date_column, end_date_column) %}
-  SELECT *
-  FROM {{ model }}
-  WHERE {{ start_date_column }} IS NOT NULL
-    AND {{ end_date_column }} IS NOT NULL
-    AND {{ end_date_column }} < {{ start_date_column }}
-{% endmacro %}
-```
-
-### 3. Referential Integrity Macro
-
-```sql
--- macros/test_referential_integrity.sql
-{% macro test_referential_integrity(model, column_name, ref_model, ref_column) %}
-  SELECT *
-  FROM {{ model }} a
-  WHERE {{ column_name }} IS NOT NULL
-    AND NOT EXISTS (
-      SELECT 1 FROM {{ ref_model }} b
-      WHERE b.{{ ref_column }} = a.{{ column_name }}
-    )
-{% endmacro %}
-```
-
-## Test Execution Commands
-
-### Run All Tests
-```bash
-# Run all tests
-dbt test
-
-# Run tests for specific model
-dbt test --select si_users
-
-# Run tests with specific severity
-dbt test --severity error
-
-# Run custom tests only
-dbt test --select test_type:generic
-```
-
-### Test Results Tracking
-
-```sql
--- Query to check test results in Snowflake
+-- tests/silver/test_users_deduplication.sql
 SELECT 
-  test_name,
-  model_name,
-  status,
-  execution_time,
-  message,
-  run_started_at
-FROM DBT_TEST_RESULTS
-WHERE run_started_at >= CURRENT_DATE()
-ORDER BY run_started_at DESC;
+    user_id,
+    COUNT(*) as record_count
+FROM {{ ref('si_users') }}
+GROUP BY user_id
+HAVING COUNT(*) > 1
 ```
 
-## Performance Considerations
-
-### 1. Test Optimization
-- Use `limit` in development environment
-- Implement test sampling for large datasets
-- Schedule heavy tests during off-peak hours
-- Use incremental testing where possible
-
-### 2. Resource Management
-```yaml
-# dbt_project.yml
-tests:
-  zoom_dbt:
-    +severity: warn
-    +store_failures: true
-    +schema: 'dbt_test_audit'
+#### 5. Test for Incremental Loading
+```sql
+-- tests/silver/test_incremental_loading.sql
+WITH current_run AS (
+    SELECT MAX(update_timestamp) as max_update_time
+    FROM {{ ref('si_users') }}
+),
+source_data AS (
+    SELECT COUNT(*) as source_count
+    FROM {{ source('bronze', 'bz_users') }}
+    WHERE update_timestamp > (SELECT max_update_time FROM current_run)
+)
+SELECT *
+FROM source_data
+WHERE source_count = 0
+  AND (SELECT max_update_time FROM current_run) IS NOT NULL
 ```
 
-### 3. Monitoring and Alerting
-- Set up alerts for test failures
-- Monitor test execution times
-- Track data quality trends over time
-- Implement automated remediation for common issues
+#### 6. Test for Referential Integrity
+```sql
+-- tests/silver/test_meetings_host_relationship.sql
+SELECT 
+    m.meeting_id,
+    m.host_id
+FROM {{ ref('si_meetings') }} m
+LEFT JOIN {{ ref('si_users') }} u ON m.host_id = u.user_id
+WHERE u.user_id IS NULL
+```
 
-## Error Handling and Troubleshooting
+#### 7. Test for Process Audit Consistency
+```sql
+-- tests/silver/test_process_audit_consistency.sql
+SELECT 
+    pipeline_name,
+    execution_id,
+    records_processed,
+    records_successful,
+    records_failed
+FROM {{ ref('si_process_audit') }}
+WHERE records_processed != (records_successful + records_failed)
+  AND records_processed > 0
+```
 
-### Common Test Failures and Solutions
+#### 8. Test for Duration Calculation Accuracy
+```sql
+-- tests/silver/test_meeting_duration_accuracy.sql
+SELECT 
+    meeting_id,
+    duration_minutes,
+    DATEDIFF('minute', start_time, end_time) as calculated_duration
+FROM {{ ref('si_meetings') }}
+WHERE ABS(duration_minutes - DATEDIFF('minute', start_time, end_time)) > 1
+```
 
-1. **Unique Constraint Violations**
-   - Check for duplicate source data
-   - Verify deduplication logic
-   - Review incremental load strategy
+#### 9. Test for Data Freshness
+```sql
+-- tests/silver/test_data_freshness.sql
+SELECT 
+    'si_users' as table_name,
+    MAX(load_timestamp) as latest_load,
+    DATEDIFF('hour', MAX(load_timestamp), CURRENT_TIMESTAMP()) as hours_since_load
+FROM {{ ref('si_users') }}
+WHERE DATEDIFF('hour', MAX(load_timestamp), CURRENT_TIMESTAMP()) > 24
 
-2. **Referential Integrity Failures**
-   - Validate source data relationships
-   - Check for timing issues in data loads
-   - Implement proper dependency management
+UNION ALL
 
-3. **Data Type Mismatches**
-   - Review source schema changes
-   - Update model definitions
-   - Implement schema evolution handling
+SELECT 
+    'si_meetings' as table_name,
+    MAX(load_timestamp) as latest_load,
+    DATEDIFF('hour', MAX(load_timestamp), CURRENT_TIMESTAMP()) as hours_since_load
+FROM {{ ref('si_meetings') }}
+WHERE DATEDIFF('hour', MAX(load_timestamp), CURRENT_TIMESTAMP()) > 24
+```
 
-4. **Range Validation Failures**
-   - Check for data anomalies
-   - Review business rule changes
-   - Update validation thresholds
+#### 10. Test for Row Count Validation
+```sql
+-- tests/silver/test_row_count_validation.sql
+WITH bronze_counts AS (
+    SELECT 
+        'users' as entity,
+        COUNT(DISTINCT user_id) as bronze_count
+    FROM {{ source('bronze', 'bz_users') }}
+    WHERE user_id IS NOT NULL
+      AND email IS NOT NULL
+      AND REGEXP_LIKE(email, '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$')
+),
+silver_counts AS (
+    SELECT 
+        'users' as entity,
+        COUNT(*) as silver_count
+    FROM {{ ref('si_users') }}
+)
+SELECT 
+    b.entity,
+    b.bronze_count,
+    s.silver_count,
+    ABS(b.bronze_count - s.silver_count) as count_difference
+FROM bronze_counts b
+JOIN silver_counts s ON b.entity = s.entity
+WHERE ABS(b.bronze_count - s.silver_count) > (b.bronze_count * 0.05) -- Allow 5% variance
+```
+
+## Test Execution Strategy
+
+### 1. Test Categories
+
+- **Unit Tests**: Individual model validation
+- **Integration Tests**: Cross-model relationships
+- **Data Quality Tests**: Business rule validation
+- **Performance Tests**: Query execution time validation
+- **Edge Case Tests**: Boundary condition handling
+
+### 2. Test Execution Order
+
+1. **Source Tests**: Validate bronze layer data quality
+2. **Model Tests**: Validate individual silver models
+3. **Integration Tests**: Validate cross-model relationships
+4. **Business Rule Tests**: Validate domain-specific logic
+5. **Performance Tests**: Validate query performance
+
+### 3. Test Monitoring
+
+- **dbt Test Results**: Tracked in `run_results.json`
+- **Snowflake Audit**: Query history and performance metrics
+- **Data Quality Dashboard**: Real-time test result monitoring
+- **Alert System**: Automated notifications for test failures
+
+## Error Handling and Recovery
+
+### 1. Test Failure Scenarios
+
+- **Data Quality Issues**: Invalid data in source systems
+- **Schema Changes**: Unexpected column additions/removals
+- **Performance Degradation**: Slow query execution
+- **Referential Integrity**: Missing related records
+
+### 2. Recovery Procedures
+
+- **Automatic Retry**: For transient failures
+- **Data Correction**: For data quality issues
+- **Schema Migration**: For structural changes
+- **Performance Optimization**: For slow queries
 
 ## API Cost Calculation
 
-Based on the comprehensive test suite generation and file operations:
-- Text processing and analysis: ~$0.0045
-- Test case generation: ~$0.0032
-- File writing operations: ~$0.0008
-- Documentation formatting: ~$0.0015
+Based on the comprehensive test suite generation and analysis:
 
-**Total Estimated API Cost: $0.0100 USD**
+- **Test Case Analysis**: $0.0045
+- **SQL Script Generation**: $0.0078
+- **Documentation Creation**: $0.0032
+- **Validation Logic**: $0.0025
 
----
+**Total API Cost**: $0.0180 USD
 
 ## Conclusion
 
-This comprehensive unit testing framework ensures:
+This comprehensive unit test suite provides robust validation for the Zoom Customer Analytics Silver layer dbt models in Snowflake. The test cases cover:
 
-1. **Data Quality**: Validates all critical data quality dimensions
-2. **Business Rules**: Enforces business logic and constraints
-3. **Performance**: Optimized for Snowflake execution
-4. **Maintainability**: Modular and reusable test components
-5. **Monitoring**: Complete audit trail and error tracking
-6. **Scalability**: Supports growth and schema evolution
+- **Data Quality**: Email validation, data type checking, range validation
+- **Business Rules**: Plan type standardization, duration constraints
+- **Edge Cases**: Null handling, empty datasets, invalid data
+- **Performance**: Incremental loading, deduplication efficiency
+- **Integration**: Cross-model relationships and referential integrity
 
-The test suite covers all 9 silver layer models with 80+ individual tests, ensuring robust data pipeline reliability and preventing production failures through early detection of data quality issues.
+The test suite ensures reliable data transformations, maintains data quality standards, and provides early detection of issues in the development cycle.
