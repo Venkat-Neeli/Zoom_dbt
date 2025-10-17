@@ -6,45 +6,29 @@
     )
 }}
 
-WITH error_base AS (
+-- Data Quality Errors tracking table
+WITH error_data AS (
     SELECT
-        '{{ invocation_id }}_ERROR_001' as error_id,
-        'INITIAL_ERROR_LOG' as source_table,
-        'INITIALIZATION' as source_column,
-        'SYSTEM_INIT' as error_type,
-        'Initial error log setup' as error_description,
-        'N/A' as error_value,
-        'N/A' as expected_format,
-        'SYSTEM_INIT' as record_identifier,
-        CURRENT_TIMESTAMP() as error_timestamp,
-        'INFO' as severity_level,
-        'RESOLVED' as resolution_status,
-        'SYSTEM' as resolved_by,
-        CURRENT_TIMESTAMP() as resolution_timestamp,
-        CURRENT_DATE() as load_date,
-        CURRENT_DATE() as update_date,
-        'SYSTEM' as source_system
-    WHERE 1=0  -- This ensures no initial records are inserted
+        {{ dbt_utils.generate_surrogate_key(['current_timestamp()', 'source_table', 'error_type']) }} AS error_id,
+        'sample_table' AS source_table,
+        'sample_column' AS source_column,
+        'NULL_CHECK' AS error_type,
+        'Sample error for initialization' AS error_description,
+        'NULL' AS error_value,
+        'NOT NULL' AS expected_format,
+        'sample_record_id' AS record_identifier,
+        CURRENT_TIMESTAMP() AS error_timestamp,
+        'LOW' AS severity_level,
+        'OPEN' AS resolution_status,
+        NULL AS resolved_by,
+        NULL AS resolution_timestamp,
+        CURRENT_DATE() AS load_date,
+        CURRENT_DATE() AS update_date,
+        'Zoom' AS source_system
+    WHERE FALSE -- This ensures no actual data is inserted during initialization
 )
 
-SELECT 
-    error_id::VARCHAR(255) as error_id,
-    source_table::VARCHAR(255) as source_table,
-    source_column::VARCHAR(255) as source_column,
-    error_type::VARCHAR(100) as error_type,
-    error_description::VARCHAR(1000) as error_description,
-    error_value::VARCHAR(500) as error_value,
-    expected_format::VARCHAR(255) as expected_format,
-    record_identifier::VARCHAR(255) as record_identifier,
-    error_timestamp,
-    severity_level::VARCHAR(50) as severity_level,
-    resolution_status::VARCHAR(50) as resolution_status,
-    resolved_by::VARCHAR(255) as resolved_by,
-    resolution_timestamp,
-    load_date,
-    update_date,
-    source_system::VARCHAR(255) as source_system
-FROM error_base
+SELECT * FROM error_data
 
 {% if is_incremental() %}
     WHERE error_timestamp > (SELECT MAX(error_timestamp) FROM {{ this }})
