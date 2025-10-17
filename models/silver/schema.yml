@@ -1,0 +1,126 @@
+version: 2
+
+sources:
+  - name: bronze
+    description: "Bronze layer containing raw data from Zoom systems"
+    tables:
+      - name: bz_users
+        description: "Raw user data from Zoom"
+      - name: bz_meetings
+        description: "Raw meeting data from Zoom"
+      - name: bz_participants
+        description: "Raw participant data from Zoom"
+      - name: bz_feature_usage
+        description: "Raw feature usage data from Zoom"
+      - name: bz_webinars
+        description: "Raw webinar data from Zoom"
+      - name: bz_support_tickets
+        description: "Raw support ticket data from Zoom"
+      - name: bz_licenses
+        description: "Raw license data from Zoom"
+      - name: bz_billing_events
+        description: "Raw billing event data from Zoom"
+
+models:
+  - name: si_process_audit
+    description: "Process audit log for tracking ETL pipeline execution"
+    columns:
+      - name: execution_id
+        description: "Unique identifier for each execution"
+        tests:
+          - not_null
+          - unique
+      - name: pipeline_name
+        description: "Name of the ETL pipeline"
+        tests:
+          - not_null
+      - name: status
+        description: "Execution status"
+        tests:
+          - not_null
+          
+  - name: si_users
+    description: "Silver layer users table with cleaned and validated data"
+    columns:
+      - name: user_id
+        description: "Unique identifier for users"
+        tests:
+          - not_null
+          - unique
+      - name: email
+        description: "Validated and normalized email address"
+        tests:
+          - not_null
+          - unique
+          
+  - name: si_meetings
+    description: "Silver layer meetings table with cleaned and validated data"
+    columns:
+      - name: meeting_id
+        description: "Unique identifier for meetings"
+        tests:
+          - not_null
+          - unique
+          
+  - name: si_participants
+    description: "Silver layer participants table with cleaned and validated data"
+    columns:
+      - name: participant_id
+        description: "Unique identifier for participants"
+        tests:
+          - not_null
+          - unique
+          
+  - name: si_feature_usage
+    description: "Silver layer feature usage table with cleaned and validated data"
+    columns:
+      - name: usage_id
+        description: "Unique identifier for usage records"
+        tests:
+          - not_null
+          - unique
+          
+  - name: si_webinars
+    description: "Silver layer webinars table with cleaned and validated data"
+    columns:
+      - name: webinar_id
+        description: "Unique identifier for webinars"
+        tests:
+          - not_null
+          - unique
+          
+  - name: si_support_tickets
+    description: "Silver layer support tickets table with cleaned and validated data"
+    columns:
+      - name: ticket_id
+        description: "Unique identifier for support tickets"
+        tests:
+          - not_null
+          - unique
+          
+  - name: si_licenses
+    description: "Silver layer licenses table with cleaned and validated data"
+    columns:
+      - name: license_id
+        description: "Unique identifier for licenses"
+        tests:
+          - not_null
+          - unique
+          
+  - name: si_billing_events
+    description: "Silver layer billing events table with cleaned and validated data"
+    columns:
+      - name: event_id
+        description: "Unique identifier for billing events"
+        tests:
+          - not_null
+          - unique
+          
+  - name: si_data_quality_errors
+    description: "Data quality errors captured during transformation"
+    columns:
+      - name: error_id
+        description: "Unique identifier for each error"
+        tests:
+          - not_null
+          - unique
