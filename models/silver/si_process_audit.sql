@@ -1,56 +1,34 @@
-{{
-    config(
-        materialized='incremental',
-        unique_key='execution_id',
-        on_schema_change='sync_all_columns'
-    )
-}}
+{{ config(
+    materialized='incremental',
+    unique_key='execution_id',
+    on_schema_change='sync_all_columns'
+) }}
 
-WITH audit_base AS (
+-- Process audit table for tracking ETL execution
+WITH audit_data AS (
     SELECT
-        '{{ invocation_id }}' as execution_id,
-        'INITIAL_AUDIT_LOG' as pipeline_name,
-        CURRENT_TIMESTAMP() as start_time,
-        CURRENT_TIMESTAMP() as end_time,
-        'SUCCESS' as status,
-        NULL as error_message,
-        0 as records_processed,
-        0 as records_successful,
-        0 as records_failed,
-        0 as processing_duration_seconds,
-        'SYSTEM' as source_system,
-        'SILVER' as target_system,
-        'INITIALIZATION' as process_type,
-        'DBT_SYSTEM' as user_executed,
-        'DBT_CLOUD' as server_name,
-        0 as memory_usage_mb,
-        0 as cpu_usage_percent,
-        CURRENT_DATE() as load_date,
-        CURRENT_DATE() as update_date
-    WHERE 1=0  -- This ensures no initial records are inserted
+        {{ dbt_utils.generate_surrogate_key(['current_timestamp()']) }} AS execution_id,
+        'Silver Layer ETL' AS pipeline_name,
+        CURRENT_TIMESTAMP() AS start_time,
+        CURRENT_TIMESTAMP() AS end_time,
+        'SUCCESS' AS status,
+        NULL AS error_message,
+        0 AS records_processed,
+        0 AS records_successful,
+        0 AS records_failed,
+        0 AS processing_duration_seconds,
+        'Zoom' AS source_system,
+        'Silver' AS target_system,
+        'ETL' AS process_type,
+        'dbt_user' AS user_executed,
+        'dbt_cloud' AS server_name,
+        NULL AS memory_usage_mb,
+        NULL AS cpu_usage_percent,
+        CURRENT_DATE() AS load_date,
+        CURRENT_DATE() AS update_date
 )
 
-SELECT 
-    execution_id::VARCHAR(255) as execution_id,
-    pipeline_name::VARCHAR(255) as pipeline_name,
-    start_time,
-    end_time,
-    status::VARCHAR(50) as status,
-    error_message::VARCHAR(1000) as error_message,
-    records_processed,
-    records_successful,
-    records_failed,
-    processing_duration_seconds,
-    source_system::VARCHAR(255) as source_system,
-    target_system::VARCHAR(255) as target_system,
-    process_type::VARCHAR(100) as process_type,
-    user_executed::VARCHAR(255) as user_executed,
-    server_name::VARCHAR(255) as server_name,
-    memory_usage_mb,
-    cpu_usage_percent,
-    load_date,
-    update_date
-FROM audit_base
+SELECT * FROM audit_data
 
 {% if is_incremental() %}
     WHERE start_time > (SELECT MAX(start_time) FROM {{ this }})
