@@ -1,0 +1,242 @@
+version: 2
+
+sources:
+  - name: silver
+    description: "Silver layer tables containing cleaned and validated data"
+    schema: silver
+    tables:
+      - name: si_users
+        description: "Silver users table with user information"
+        columns:
+          - name: user_id
+            description: "Unique identifier for user"
+            tests:
+              - not_null
+              - unique
+          - name: user_name
+            description: "User display name"
+          - name: email
+            description: "User email address"
+          - name: company
+            description: "User company/organization"
+          - name: plan_type
+            description: "User subscription plan type"
+          - name: load_timestamp
+            description: "Data load timestamp"
+          - name: update_timestamp
+            description: "Data update timestamp"
+          - name: source_system
+            description: "Source system identifier"
+          - name: load_date
+            description: "Data load date"
+          - name: update_date
+            description: "Data update date"
+          - name: data_quality_score
+            description: "Data quality score"
+          - name: record_status
+            description: "Record status"
+            
+      - name: si_meetings
+        description: "Silver meetings table with meeting information"
+        columns:
+          - name: meeting_id
+            description: "Unique identifier for meeting"
+            tests:
+              - not_null
+              - unique
+          - name: host_id
+            description: "Meeting host user ID"
+          - name: meeting_topic
+            description: "Meeting topic/title"
+          - name: start_time
+            description: "Meeting start timestamp"
+          - name: end_time
+            description: "Meeting end timestamp"
+          - name: duration_minutes
+            description: "Meeting duration in minutes"
+          - name: load_timestamp
+            description: "Data load timestamp"
+          - name: update_timestamp
+            description: "Data update timestamp"
+          - name: source_system
+            description: "Source system identifier"
+          - name: load_date
+            description: "Data load date"
+          - name: update_date
+            description: "Data update date"
+          - name: data_quality_score
+            description: "Data quality score"
+          - name: record_status
+            description: "Record status"
+            
+      - name: si_participants
+        description: "Silver participants table with participant information"
+        columns:
+          - name: participant_id
+            description: "Unique identifier for participant"
+            tests:
+              - not_null
+          - name: meeting_id
+            description: "Associated meeting ID"
+          - name: user_id
+            description: "Participant user ID"
+          - name: join_time
+            description: "Participant join timestamp"
+          - name: leave_time
+            description: "Participant leave timestamp"
+          - name: load_timestamp
+            description: "Data load timestamp"
+          - name: update_timestamp
+            description: "Data update timestamp"
+          - name: source_system
+            description: "Source system identifier"
+          - name: load_date
+            description: "Data load date"
+          - name: update_date
+            description: "Data update date"
+          - name: data_quality_score
+            description: "Data quality score"
+          - name: record_status
+            description: "Record status"
+            
+      - name: si_feature_usage
+        description: "Silver feature usage table"
+        columns:
+          - name: usage_id
+            description: "Unique identifier for usage record"
+          - name: meeting_id
+            description: "Associated meeting ID"
+          - name: feature_name
+            description: "Feature name"
+          - name: usage_count
+            description: "Usage count"
+          - name: usage_date
+            description: "Usage date"
+          - name: load_timestamp
+            description: "Data load timestamp"
+          - name: update_timestamp
+            description: "Data update timestamp"
+          - name: source_system
+            description: "Source system identifier"
+          - name: load_date
+            description: "Data load date"
+          - name: update_date
+            description: "Data update date"
+          - name: data_quality_score
+            description: "Data quality score"
+          - name: record_status
+            description: "Record status"
+            
+      - name: si_webinars
+        description: "Silver webinars table"
+        columns:
+          - name: webinar_id
+            description: "Unique identifier for webinar"
+          - name: host_id
+            description: "Webinar host user ID"
+          - name: webinar_topic
+            description: "Webinar topic/title"
+          - name: start_time
+            description: "Webinar start timestamp"
+          - name: end_time
+            description: "Webinar end timestamp"
+          - name: registrants
+            description: "Number of registrants"
+          - name: load_timestamp
+            description: "Data load timestamp"
+          - name: update_timestamp
+            description: "Data update timestamp"
+          - name: source_system
+            description: "Source system identifier"
+          - name: load_date
+            description: "Data load date"
+          - name: update_date
+            description: "Data update date"
+          - name: data_quality_score
+            description: "Data quality score"
+          - name: record_status
+            description: "Record status"
+            
+      - name: si_support_tickets
+        description: "Silver support tickets table"
+        columns:
+          - name: ticket_id
+            description: "Unique identifier for ticket"
+          - name: user_id
+            description: "Associated user ID"
+          - name: ticket_type
+            description: "Ticket type"
+          - name: resolution_status
+            description: "Resolution status"
+          - name: open_date
+            description: "Ticket open date"
+          - name: load_timestamp
+            description: "Data load timestamp"
+          - name: update_timestamp
+            description: "Data update timestamp"
+          - name: source_system
+            description: "Source system identifier"
+          - name: load_date
+            description: "Data load date"
+          - name: update_date
+            description: "Data update date"
+          - name: data_quality_score
+            description: "Data quality score"
+          - name: record_status
+            description: "Record status"
+            
+      - name: si_licenses
+        description: "Silver licenses table"
+        columns:
+          - name: license_id
+            description: "Unique identifier for license"
+          - name: license_type
+            description: "License type"
+          - name: assigned_to_user_id
+            description: "User ID assigned to license"
+          - name: start_date
+            description: "License start date"
+          - name: end_date
+            description: "License end date"
+          - name: load_timestamp
+            description: "Data load timestamp"
+          - name: update_timestamp
+            description: "Data update timestamp"
+          - name: source_system
+            description: "Source system identifier"
+          - name: load_date
+            description: "Data load date"
+          - name: update_date
+            description: "Data update date"
+          - name: data_quality_score
+            description: "Data quality score"
+          - name: record_status
+            description: "Record status"
+            
+      - name: si_billing_events
+        description: "Silver billing events table"
+        columns:
+          - name: event_id
+            description: "Unique identifier for billing event"
+          - name: user_id
+            description: "Associated user ID"
+          - name: event_type
+            description: "Billing event type"
+          - name: amount
+            description: "Billing amount"
+          - name: event_date
+            description: "Event date"
+          - name: load_timestamp
+            description: "Data load timestamp"
+          - name: update_timestamp
+            description: "Data update timestamp"
+          - name: source_system
+            description: "Source system identifier"
+          - name: load_date
+            description: "Data load date"
+          - name: update_date
+            description: "Data update date"
+          - name: data_quality_score
+            description: "Data quality score"
+          - name: record_status
+            description: "Record status"
