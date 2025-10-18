@@ -21,7 +21,7 @@ WITH participant_base AS (
         record_status
     FROM {{ ref('si_participants') }}
     WHERE participant_id IS NOT NULL
-        AND record_status = 'ACTIVE'
+        AND record_status = 'active'
 ),
 
 meeting_context AS (
@@ -34,7 +34,7 @@ meeting_context AS (
         duration_minutes AS meeting_duration_minutes
     FROM {{ ref('si_meetings') }}
     WHERE meeting_id IS NOT NULL
-        AND record_status = 'ACTIVE'
+        AND record_status = 'active'
 ),
 
 user_context AS (
@@ -46,7 +46,7 @@ user_context AS (
         plan_type
     FROM {{ ref('si_users') }}
     WHERE user_id IS NOT NULL
-        AND record_status = 'ACTIVE'
+        AND record_status = 'active'
 ),
 
 participant_feature_usage AS (
@@ -58,7 +58,7 @@ participant_feature_usage AS (
         COUNT(DISTINCT fu.feature_name) AS interaction_count
     FROM participant_base pb
     LEFT JOIN {{ ref('si_feature_usage') }} fu ON pb.meeting_id = fu.meeting_id
-    WHERE fu.record_status = 'ACTIVE' OR fu.record_status IS NULL
+    WHERE fu.record_status = 'active' OR fu.record_status IS NULL
     GROUP BY pb.participant_id, pb.meeting_id
 )
 
