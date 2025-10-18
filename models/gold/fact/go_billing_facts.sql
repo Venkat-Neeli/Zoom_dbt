@@ -21,7 +21,7 @@ WITH billing_base AS (
         record_status
     FROM {{ ref('si_billing_events') }}
     WHERE event_id IS NOT NULL
-        AND record_status = 'ACTIVE'
+        AND record_status = 'active'
 ),
 
 user_context AS (
@@ -33,7 +33,7 @@ user_context AS (
         plan_type
     FROM {{ ref('si_users') }}
     WHERE user_id IS NOT NULL
-        AND record_status = 'ACTIVE'
+        AND record_status = 'active'
 ),
 
 license_context AS (
@@ -44,7 +44,7 @@ license_context AS (
         end_date AS license_end_date
     FROM {{ ref('si_licenses') }}
     WHERE assigned_to_user_id IS NOT NULL
-        AND record_status = 'ACTIVE'
+        AND record_status = 'active'
 )
 
 SELECT 
