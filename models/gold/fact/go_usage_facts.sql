@@ -5,19 +5,33 @@
     post_hook="INSERT INTO {{ ref('go_process_audit') }} (process_name, table_name, end_time, status, records_processed) VALUES ('go_usage_facts_transform', 'go_usage_facts', CURRENT_TIMESTAMP(), 'COMPLETED', (SELECT COUNT(*) FROM {{ this }})) WHERE '{{ this.name }}' != 'go_process_audit'"
 ) }}
 
-WITH feature_usage_base AS (
+WITH usage_base AS (
     SELECT 
         usage_id,
         meeting_id,
         feature_name,
         usage_count,
         usage_date,
-        user_id,
-        session_duration_minutes,
-        created_at AS usage_created_at,
-        updated_at AS usage_updated_at
+        load_timestamp,
+        update_timestamp,
+        source_system,
+        load_date,
+        update_date,
+        data_quality_score,
+        record_status
     FROM {{ ref('si_feature_usage') }}
     WHERE usage_id IS NOT NULL
+        AND record_status = 'ACTIVE'
+),
+
+meeting_context AS (
+    SELECT 
+        meeting_id,
+        host_id,
+        duration_minutes AS meeting_duration_minutes
+    FROM {{ ref('si_meetings') }}
+    WHERE meeting_id IS NOT NULL
+        AND record_status = 'ACTIVE'
 ),
 
 user_context AS (
@@ -29,91 +43,45 @@ user_context AS (
         plan_type
     FROM {{ ref('si_users') }}
     WHERE user_id IS NOT NULL
-),
-
-meeting_context AS (
-    SELECT 
-        meeting_id,
-        host_id,
-        meeting_type,
-        duration_minutes AS meeting_duration_minutes
-    FROM {{ ref('si_meetings') }}
-    WHERE meeting_id IS NOT NULL
+        AND record_status = 'ACTIVE'
 ),
 
 user_daily_usage AS (
     SELECT 
-        user_id,
-        usage_date,
-        COUNT(DISTINCT feature_name) AS daily_features_used,
-        SUM(usage_count) AS daily_total_usage,
-        COUNT(DISTINCT meeting_id) AS daily_meetings_count,
-        SUM(session_duration_minutes) AS daily_session_duration
-    FROM feature_usage_base
-    GROUP BY user_id, usage_date
-),
-
-feature_popularity AS (
-    SELECT 
-        feature_name,
-        COUNT(DISTINCT user_id) AS feature_user_count,
-        SUM(usage_count) AS feature_total_usage,
-        AVG(usage_count) AS feature_avg_usage
-    FROM feature_usage_base
-    GROUP BY feature_name
+        mc.host_id AS user_id,
+        ub.usage_date,
+        COUNT(DISTINCT ub.meeting_id) AS meeting_count,
+        SUM(mc.meeting_duration_minutes) AS total_meeting_minutes,
+        COUNT(DISTINCT CASE WHEN ub.feature_name = 'Recording' THEN ub.meeting_id END) AS webinar_count,
+        SUM(CASE WHEN ub.feature_name = 'Recording' THEN ub.usage_count * 0.1 ELSE 0 END) AS recording_storage_gb,
+        SUM(ub.usage_count) AS feature_usage_count,
+        COUNT(DISTINCT p.user_id) AS unique_participants_hosted
+    FROM usage_base ub
+    LEFT JOIN meeting_context mc ON ub.meeting_id = mc.meeting_id
+    LEFT JOIN {{ ref('si_participants') }} p ON ub.meeting_id = p.meeting_id AND p.record_status = 'ACTIVE'
+    GROUP BY mc.host_id, ub.usage_date
 )
 
 SELECT 
-    {{ dbt_utils.generate_surrogate_key(['fub.usage_id']) }} AS usage_fact_key,
-    fub.usage_id,
-    fub.meeting_id,
-    fub.user_id,
-    mc.host_id,
-    uc.user_name,
-    uc.email,
-    uc.company,
-    uc.plan_type,
-    fub.feature_name,
-    fub.usage_count,
-    DATE(fub.usage_date) AS usage_date,
-    fub.usage_date AS usage_timestamp,
-    fub.session_duration_minutes,
-    mc.meeting_type,
-    mc.meeting_duration_minutes,
-    udu.daily_features_used,
-    udu.daily_total_usage,
-    udu.daily_meetings_count,
-    udu.daily_session_duration AS daily_total_session_duration,
-    fp.feature_user_count,
-    fp.feature_total_usage,
-    fp.feature_avg_usage,
-    ROUND(
-        (fub.usage_count * 100.0) / NULLIF(udu.daily_total_usage, 0), 2
-    ) AS usage_percentage_of_daily_total,
-    ROUND(
-        (fub.session_duration_minutes * 100.0) / NULLIF(mc.meeting_duration_minutes, 0), 2
-    ) AS session_percentage_of_meeting,
-    CASE 
-        WHEN fub.usage_count >= 10 THEN 'Heavy'
-        WHEN fub.usage_count >= 5 THEN 'Moderate'
-        WHEN fub.usage_count >= 1 THEN 'Light'
-        ELSE 'None'
-    END AS usage_intensity,
-    CASE 
-        WHEN fp.feature_user_count >= 1000 THEN 'Very Popular'
-        WHEN fp.feature_user_count >= 500 THEN 'Popular'
-        WHEN fp.feature_user_count >= 100 THEN 'Moderate'
-        ELSE 'Niche'
-    END AS feature_popularity_category,
-    CASE 
-        WHEN fub.user_id = mc.host_id THEN 'Host'
-        ELSE 'Participant'
-    END AS user_role_in_meeting,
-    CURRENT_TIMESTAMP() AS created_at,
-    CURRENT_TIMESTAMP() AS updated_at,
-    'SUCCESS' AS process_status
-FROM feature_usage_base fub
-LEFT JOIN user_context uc ON fub.user_id = uc.user_id
-LEFT JOIN meeting_context mc ON fub.meeting_id = mc.meeting_id
-LEFT JOIN user_daily_usage udu ON fub.user_id = udu.user_id AND DATE(fub.usage_date) = udu.usage_date
-LEFT JOIN feature_popularity fp ON fub.feature_name = fp.feature_name
+    CONCAT('UF_', mc.host_id, '_', ub.usage_date::STRING) AS usage_fact_id,
+    mc.host_id AS user_id,
+    COALESCE(uc.company, 'INDIVIDUAL') AS organization_id,
+    ub.usage_date,
+    COALESCE(udu.meeting_count, 0) AS meeting_count,
+    COALESCE(udu.total_meeting_minutes, 0) AS total_meeting_minutes,
+    COALESCE(udu.webinar_count, 0) AS webinar_count,
+    COALESCE(udu.total_meeting_minutes, 0) AS total_webinar_minutes,
+    COALESCE(udu.recording_storage_gb, 0) AS recording_storage_gb,
+    COALESCE(udu.feature_usage_count, 0) AS feature_usage_count,
+    COALESCE(udu.unique_participants_hosted, 0) AS unique_participants_hosted,
+    ub.load_date,
+    CURRENT_DATE() AS update_date,
+    ub.source_system
+FROM usage_base ub
+LEFT JOIN meeting_context mc ON ub.meeting_id = mc.meeting_id
+LEFT JOIN user_context uc ON mc.host_id = uc.user_id
+LEFT JOIN user_daily_usage udu ON mc.host_id = udu.user_id AND ub.usage_date = udu.usage_date
+GROUP BY 
+    mc.host_id, uc.company, ub.usage_date, udu.meeting_count, udu.total_meeting_minutes,
+    udu.webinar_count, udu.recording_storage_gb, udu.feature_usage_count, 
+    udu.unique_participants_hosted, ub.load_date, ub.source_system
