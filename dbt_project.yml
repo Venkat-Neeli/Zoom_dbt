@@ -2,12 +2,12 @@ name: 'Zoom_Customer_Analytics'
 version: '1.0.0'
 config-version: 2
 
-profile: 'zoom_analytics'
+profile: 'Zoom_Customer_Analytics'
 
 model-paths: ["models"]
-analysis-paths: ["analysis"]
+analysis-paths: ["analyses"]
 test-paths: ["tests"]
-seed-paths: ["data"]
+seed-paths: ["seeds"]
 macro-paths: ["macros"]
 snapshot-paths: ["snapshots"]
 
@@ -19,16 +19,19 @@ clean-targets:
 models:
   Zoom_Customer_Analytics:
     +materialized: table
+    silver:
+      +materialized: table
     gold:
-      dimension:
-        +materialized: table
-        +cluster_by: ['load_date']
+      +materialized: table
       fact:
         +materialized: table
-        +cluster_by: ['load_date']
+        +cluster_by: ["load_date"]
+      dimensional:
+        +materialized: table
+        +cluster_by: ["load_date"]
       aggregated:
         +materialized: table
-        +cluster_by: ['load_date']
+        +cluster_by: ["load_date"]
 
 vars:
   start_date: '2020-01-01'
