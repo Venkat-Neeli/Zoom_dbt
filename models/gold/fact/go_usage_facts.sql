@@ -21,7 +21,7 @@ WITH usage_base AS (
         record_status
     FROM {{ ref('si_feature_usage') }}
     WHERE usage_id IS NOT NULL
-        AND record_status = 'ACTIVE'
+        AND record_status = 'active'
 ),
 
 meeting_context AS (
@@ -31,7 +31,7 @@ meeting_context AS (
         duration_minutes AS meeting_duration_minutes
     FROM {{ ref('si_meetings') }}
     WHERE meeting_id IS NOT NULL
-        AND record_status = 'ACTIVE'
+        AND record_status = 'active'
 ),
 
 user_context AS (
@@ -43,7 +43,7 @@ user_context AS (
         plan_type
     FROM {{ ref('si_users') }}
     WHERE user_id IS NOT NULL
-        AND record_status = 'ACTIVE'
+        AND record_status = 'active'
 ),
 
 user_daily_usage AS (
@@ -58,7 +58,7 @@ user_daily_usage AS (
         COUNT(DISTINCT p.user_id) AS unique_participants_hosted
     FROM usage_base ub
     LEFT JOIN meeting_context mc ON ub.meeting_id = mc.meeting_id
-    LEFT JOIN {{ ref('si_participants') }} p ON ub.meeting_id = p.meeting_id AND p.record_status = 'ACTIVE'
+    LEFT JOIN {{ ref('si_participants') }} p ON ub.meeting_id = p.meeting_id AND p.record_status = 'active'
     GROUP BY mc.host_id, ub.usage_date
 )
 
