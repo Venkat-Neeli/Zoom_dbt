@@ -22,7 +22,7 @@ WITH meeting_base AS (
         record_status
     FROM {{ ref('si_meetings') }}
     WHERE meeting_id IS NOT NULL
-        AND record_status = 'ACTIVE'
+        AND record_status = 'active'
 ),
 
 participant_metrics AS (
@@ -34,7 +34,7 @@ participant_metrics AS (
         SUM(DATEDIFF('minute', join_time, leave_time)) AS total_attendance_minutes
     FROM {{ ref('si_participants') }}
     WHERE meeting_id IS NOT NULL
-        AND record_status = 'ACTIVE'
+        AND record_status = 'active'
     GROUP BY meeting_id
 ),
 
@@ -47,7 +47,7 @@ feature_usage_metrics AS (
         SUM(CASE WHEN feature_name = 'Breakout Rooms' THEN usage_count ELSE 0 END) AS breakout_room_count
     FROM {{ ref('si_feature_usage') }}
     WHERE meeting_id IS NOT NULL
-        AND record_status = 'ACTIVE'
+        AND record_status = 'active'
     GROUP BY meeting_id
 ),
 
@@ -59,7 +59,7 @@ host_info AS (
         plan_type
     FROM {{ ref('si_users') }}
     WHERE user_id IS NOT NULL
-        AND record_status = 'ACTIVE'
+        AND record_status = 'active'
 )
 
 SELECT 
@@ -74,7 +74,6 @@ SELECT
         ELSE DATEDIFF('minute', mb.start_time, mb.end_time) 
     END AS duration_minutes,
     COALESCE(pm.total_participants, 0) AS participant_count,
-    -- Calculate max concurrent participants (simplified estimation)
     COALESCE(pm.total_participants, 0) AS max_concurrent_participants,
     COALESCE(pm.total_attendance_minutes, 0) AS total_attendance_minutes,
     CASE 
