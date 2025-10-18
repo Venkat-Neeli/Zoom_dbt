@@ -1,0 +1,247 @@
+version: 2
+
+models:
+  - name: go_process_audit
+    description: "Gold layer process audit table for tracking ETL operations"
+    columns:
+      - name: execution_id
+        description: "Unique execution identifier"
+        tests:
+          - not_null
+      - name: pipeline_name
+        description: "Name of the pipeline being executed"
+        tests:
+          - not_null
+      - name: process_type
+        description: "Type of process (DIMENSION_LOAD, FACT_LOAD, etc.)"
+      - name: start_time
+        description: "Process start timestamp"
+      - name: end_time
+        description: "Process end timestamp"
+      - name: status
+        description: "Process status (STARTED, COMPLETED, FAILED)"
+        tests:
+          - not_null
+      - name: error_message
+        description: "Error message if process failed"
+      - name: records_processed
+        description: "Total number of records processed"
+      - name: records_successful
+        description: "Number of successfully processed records"
+      - name: records_failed
+        description: "Number of failed records"
+      - name: processing_duration_seconds
+        description: "Processing duration in seconds"
+      - name: source_system
+        description: "Source system identifier"
+      - name: target_system
+        description: "Target system identifier"
+      - name: user_executed
+        description: "User who executed the process"
+      - name: server_name
+        description: "Server where process was executed"
+      - name: memory_usage_mb
+        description: "Memory usage in MB"
+      - name: cpu_usage_percent
+        description: "CPU usage percentage"
+      - name: data_volume_gb
+        description: "Data volume processed in GB"
+      - name: load_date
+        description: "Date when record was loaded"
+      - name: update_date
+        description: "Date when record was last updated"
+
+  - name: go_user_dimension
+    description: "Gold layer user dimension table with comprehensive user information"
+    columns:
+      - name: user_dim_id
+        description: "Surrogate key for user dimension"
+        tests:
+          - unique
+          - not_null
+      - name: user_id
+        description: "Business key - unique user identifier from source"
+        tests:
+          - unique
+          - not_null
+      - name: user_name
+        description: "User display name"
+        tests:
+          - not_null
+      - name: email_address
+        description: "User email address"
+        tests:
+          - not_null
+      - name: user_type
+        description: "Categorized user type based on plan"
+      - name: account_status
+        description: "Current account status"
+      - name: license_type
+        description: "Current license type assigned to user"
+      - name: department_name
+        description: "User department (placeholder)"
+      - name: job_title
+        description: "User job title (placeholder)"
+      - name: time_zone
+        description: "User time zone (placeholder)"
+      - name: account_creation_date
+        description: "Account creation date (placeholder)"
+      - name: last_login_date
+        description: "Last login date (placeholder)"
+      - name: language_preference
+        description: "User language preference (placeholder)"
+      - name: phone_number
+        description: "User phone number (placeholder)"
+      - name: load_date
+        description: "Date when record was loaded"
+      - name: update_date
+        description: "Date when record was last updated"
+      - name: source_system
+        description: "Source system identifier"
+
+  - name: go_organization_dimension
+    description: "Gold layer organization dimension derived from user company information"
+    columns:
+      - name: organization_dim_id
+        description: "Surrogate key for organization dimension"
+        tests:
+          - unique
+          - not_null
+      - name: organization_id
+        description: "Business key - unique organization identifier"
+        tests:
+          - unique
+          - not_null
+      - name: organization_name
+        description: "Organization name"
+        tests:
+          - not_null
+      - name: industry_classification
+        description: "Industry classification (placeholder)"
+      - name: organization_size
+        description: "Estimated organization size"
+      - name: primary_contact_email
+        description: "Primary contact email (placeholder)"
+      - name: billing_address
+        description: "Billing address (placeholder)"
+      - name: account_manager_name
+        description: "Account manager name (placeholder)"
+      - name: contract_start_date
+        description: "Contract start date (placeholder)"
+      - name: contract_end_date
+        description: "Contract end date (placeholder)"
+      - name: maximum_user_limit
+        description: "Maximum user limit (placeholder)"
+      - name: storage_quota_gb
+        description: "Storage quota in GB (placeholder)"
+      - name: security_policy_level
+        description: "Security policy level (placeholder)"
+      - name: load_date
+        description: "Date when record was loaded"
+      - name: update_date
+        description: "Date when record was last updated"
+      - name: source_system
+        description: "Source system identifier"
+
+  - name: go_time_dimension
+    description: "Gold layer time dimension with comprehensive date attributes"
+    columns:
+      - name: time_dim_id
+        description: "Surrogate key for time dimension"
+        tests:
+          - unique
+          - not_null
+      - name: date_key
+        description: "Business key - date value"
+        tests:
+          - unique
+          - not_null
+      - name: year_number
+        description: "Year number"
+      - name: quarter_number
+        description: "Quarter number (1-4)"
+      - name: month_number
+        description: "Month number (1-12)"
+      - name: month_name
+        description: "Month name"
+      - name: week_number
+        description: "Week number in year"
+      - name: day_of_year
+        description: "Day of year (1-366)"
+      - name: day_of_month
+        description: "Day of month (1-31)"
+      - name: day_of_week
+        description: "Day of week (0=Sunday, 6=Saturday)"
+      - name: day_name
+        description: "Day name"
+      - name: is_weekend
+        description: "Boolean flag for weekend days"
+      - name: is_holiday
+        description: "Boolean flag for holidays (placeholder)"
+      - name: fiscal_year
+        description: "Fiscal year"
+      - name: fiscal_quarter
+        description: "Fiscal quarter"
+      - name: load_date
+        description: "Date when record was loaded"
+      - name: update_date
+        description: "Date when record was last updated"
+      - name: source_system
+        description: "Source system identifier"
+
+  - name: go_device_dimension
+    description: "Gold layer device dimension with device information"
+    columns:
+      - name: device_dim_id
+        description: "Surrogate key for device dimension"
+        tests:
+          - unique
+          - not_null
+      - name: device_connection_id
+        description: "Device connection identifier"
+        tests:
+          - unique
+          - not_null
+      - name: device_type
+        description: "Type of device (placeholder)"
+      - name: operating_system
+        description: "Operating system (placeholder)"
+      - name: application_version
+        description: "Application version (placeholder)"
+      - name: network_connection_type
+        description: "Network connection type (placeholder)"
+      - name: device_category
+        description: "Device category (placeholder)"
+      - name: platform_family
+        description: "Platform family (placeholder)"
+      - name: load_date
+        description: "Date when record was loaded"
+      - name: update_date
+        description: "Date when record was last updated"
+      - name: source_system
+        description: "Source system identifier"
+
+  - name: go_geography_dimension
+    description: "Gold layer geography dimension with location information"
+    columns:
+      - name: geography_dim_id
+        description: "Surrogate key for geography dimension"
+        tests:
+          - unique
+          - not_null
+      - name: country_code
+        description: "Country code"
+      - name: country_name
+        description: "Country name"
+      - name: region_name
+        description: "Region name"
+      - name: time_zone
+        description: "Time zone"
+      - name: continent
+        description: "Continent name"
+      - name: load_date
+        description: "Date when record was loaded"
+      - name: update_date
+        description: "Date when record was last updated"
+      - name: source_system
+        description: "Source system identifier"
