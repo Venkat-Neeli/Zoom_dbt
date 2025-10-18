@@ -22,7 +22,7 @@ WITH webinar_base AS (
         record_status
     FROM {{ ref('si_webinars') }}
     WHERE webinar_id IS NOT NULL
-        AND record_status = 'ACTIVE'
+        AND record_status = 'active'
 ),
 
 host_info AS (
@@ -33,7 +33,7 @@ host_info AS (
         plan_type
     FROM {{ ref('si_users') }}
     WHERE user_id IS NOT NULL
-        AND record_status = 'ACTIVE'
+        AND record_status = 'active'
 ),
 
 webinar_engagement AS (
@@ -44,19 +44,19 @@ webinar_engagement AS (
         AVG(DATEDIFF('minute', p.join_time, p.leave_time)) AS avg_attendance_duration
     FROM webinar_base w
     LEFT JOIN {{ ref('si_participants') }} p ON w.webinar_id::STRING = p.meeting_id::STRING
-    WHERE p.record_status = 'ACTIVE' OR p.record_status IS NULL
+    WHERE p.record_status = 'active' OR p.record_status IS NULL
     GROUP BY w.webinar_id
 ),
 
 webinar_features AS (
     SELECT 
-        webinar_id,
+        meeting_id as webinar_id,
         SUM(CASE WHEN feature_name = 'Q&A' THEN usage_count ELSE 0 END) AS qa_questions_count,
         SUM(CASE WHEN feature_name = 'Polling' THEN usage_count ELSE 0 END) AS poll_responses_count
     FROM {{ ref('si_feature_usage') }}
-    WHERE webinar_id IS NOT NULL
-        AND record_status = 'ACTIVE'
-    GROUP BY webinar_id
+    WHERE meeting_id IS NOT NULL
+        AND record_status = 'active'
+    GROUP BY meeting_id
 )
 
 SELECT 
