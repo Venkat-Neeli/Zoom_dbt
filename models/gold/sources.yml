@@ -3,6 +3,7 @@ version: 2
 sources:
   - name: silver
     description: "Silver layer cleaned and validated data"
+    schema: GOLD
     tables:
       - name: si_users
         description: "Silver users table with cleaned user data"
