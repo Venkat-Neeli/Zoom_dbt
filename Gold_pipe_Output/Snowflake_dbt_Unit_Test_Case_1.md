@@ -1,11 +1,12 @@
 # Snowflake dbt Unit Test Case - Zoom Gold Fact Pipeline
 
-## Metadata
-- **Author:** AAVA
-- **Created on:** 2024-12-19
-- **Description:** Comprehensive unit test cases for Zoom Gold fact pipeline data transformations and business rules validation
-- **Version:** 1
-- **Updated on:** 2024-12-19
+_____________________________________________
+## *Author*: AAVA
+## *Created on*: 2024-12-19
+## *Description*: Comprehensive unit test cases for Zoom Gold fact pipeline data transformations and business rules validation
+## *Version*: 1
+## *Updated on*: 2024-12-19
+_____________________________________________
 
 ## Description
 
