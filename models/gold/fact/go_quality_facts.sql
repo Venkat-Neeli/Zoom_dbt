@@ -17,7 +17,7 @@ WITH meeting_base AS (
         source_system
     FROM {{ ref('si_meetings') }}
     WHERE meeting_id IS NOT NULL
-        AND record_status = 'ACTIVE'
+        AND record_status = 'active'
 ),
 
 participant_base AS (
@@ -29,7 +29,7 @@ participant_base AS (
         data_quality_score
     FROM {{ ref('si_participants') }}
     WHERE participant_id IS NOT NULL
-        AND record_status = 'ACTIVE'
+        AND record_status = 'active'
 )
 
 SELECT 
