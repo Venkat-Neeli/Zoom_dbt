@@ -19,7 +19,7 @@ WITH user_base AS (
         data_quality_score,
         record_status
     FROM {{ source('silver', 'si_users') }}
-    WHERE record_status = 'ACTIVE'
+    WHERE record_status = 'active'
       AND data_quality_score >= 0.7
 ),
 
@@ -31,7 +31,7 @@ license_info AS (
         end_date,
         ROW_NUMBER() OVER (PARTITION BY assigned_to_user_id ORDER BY start_date DESC) AS rn
     FROM {{ source('silver', 'si_licenses') }}
-    WHERE record_status = 'ACTIVE'
+    WHERE record_status = 'active'
 ),
 
 latest_license AS (
