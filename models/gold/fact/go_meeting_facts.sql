@@ -13,12 +13,16 @@ WITH meeting_base AS (
         start_time,
         end_time,
         duration_minutes,
-        meeting_type,
-        timezone,
-        created_at AS meeting_created_at,
-        updated_at AS meeting_updated_at
+        load_timestamp,
+        update_timestamp,
+        source_system,
+        load_date,
+        update_date,
+        data_quality_score,
+        record_status
     FROM {{ ref('si_meetings') }}
     WHERE meeting_id IS NOT NULL
+        AND record_status = 'ACTIVE'
 ),
 
 participant_metrics AS (
@@ -27,65 +31,80 @@ participant_metrics AS (
         COUNT(DISTINCT participant_id) AS total_participants,
         COUNT(DISTINCT user_id) AS unique_users,
         AVG(DATEDIFF('minute', join_time, leave_time)) AS avg_participation_duration,
-        MAX(DATEDIFF('minute', join_time, leave_time)) AS max_participation_duration,
-        MIN(DATEDIFF('minute', join_time, leave_time)) AS min_participation_duration
+        SUM(DATEDIFF('minute', join_time, leave_time)) AS total_attendance_minutes
     FROM {{ ref('si_participants') }}
     WHERE meeting_id IS NOT NULL
+        AND record_status = 'ACTIVE'
     GROUP BY meeting_id
 ),
 
 feature_usage_metrics AS (
     SELECT 
         meeting_id,
-        COUNT(DISTINCT feature_name) AS features_used_count,
-        SUM(usage_count) AS total_feature_usage
+        COUNT(CASE WHEN feature_name = 'Recording' THEN 1 END) > 0 AS recording_enabled,
+        COUNT(CASE WHEN feature_name = 'Screen Sharing' THEN 1 END) AS screen_share_count,
+        SUM(CASE WHEN feature_name = 'Chat' THEN usage_count ELSE 0 END) AS chat_message_count,
+        SUM(CASE WHEN feature_name = 'Breakout Rooms' THEN usage_count ELSE 0 END) AS breakout_room_count
     FROM {{ ref('si_feature_usage') }}
     WHERE meeting_id IS NOT NULL
+        AND record_status = 'ACTIVE'
     GROUP BY meeting_id
 ),
 
 host_info AS (
     SELECT 
         user_id,
+        user_name,
         company,
         plan_type
     FROM {{ ref('si_users') }}
     WHERE user_id IS NOT NULL
+        AND record_status = 'ACTIVE'
 )
 
 SELECT 
-    {{ dbt_utils.generate_surrogate_key(['mb.meeting_id']) }} AS meeting_fact_key,
+    CONCAT('MF_', mb.meeting_id, '_', CURRENT_TIMESTAMP()::STRING) AS meeting_fact_id,
     mb.meeting_id,
     mb.host_id,
-    hi.company AS host_company,
-    hi.plan_type AS host_plan_type,
-    mb.meeting_topic,
-    DATE(mb.start_time) AS meeting_date,
-    mb.start_time,
-    mb.end_time,
-    mb.duration_minutes,
-    mb.meeting_type,
-    mb.timezone,
-    COALESCE(pm.total_participants, 0) AS total_participants,
-    COALESCE(pm.unique_users, 0) AS unique_users,
-    COALESCE(pm.avg_participation_duration, 0) AS avg_participation_duration_minutes,
-    COALESCE(pm.max_participation_duration, 0) AS max_participation_duration_minutes,
-    COALESCE(pm.min_participation_duration, 0) AS min_participation_duration_minutes,
-    COALESCE(fum.features_used_count, 0) AS features_used_count,
-    COALESCE(fum.total_feature_usage, 0) AS total_feature_usage,
+    TRIM(COALESCE(mb.meeting_topic, 'No Topic Specified')) AS meeting_topic,
+    CONVERT_TIMEZONE('UTC', mb.start_time) AS start_time,
+    CONVERT_TIMEZONE('UTC', mb.end_time) AS end_time,
     CASE 
-        WHEN mb.duration_minutes >= 60 THEN 'Long'
-        WHEN mb.duration_minutes >= 30 THEN 'Medium'
-        ELSE 'Short'
-    END AS meeting_duration_category,
+        WHEN mb.duration_minutes > 0 THEN mb.duration_minutes 
+        ELSE DATEDIFF('minute', mb.start_time, mb.end_time) 
+    END AS duration_minutes,
+    COALESCE(pm.total_participants, 0) AS participant_count,
+    -- Calculate max concurrent participants (simplified estimation)
+    COALESCE(pm.total_participants, 0) AS max_concurrent_participants,
+    COALESCE(pm.total_attendance_minutes, 0) AS total_attendance_minutes,
     CASE 
-        WHEN COALESCE(pm.total_participants, 0) >= 10 THEN 'Large'
-        WHEN COALESCE(pm.total_participants, 0) >= 5 THEN 'Medium'
-        ELSE 'Small'
-    END AS meeting_size_category,
-    CURRENT_TIMESTAMP() AS created_at,
-    CURRENT_TIMESTAMP() AS updated_at,
-    'SUCCESS' AS process_status
+        WHEN COALESCE(pm.total_participants, 0) > 0 
+        THEN COALESCE(pm.total_attendance_minutes, 0) / pm.total_participants
+        ELSE 0 
+    END AS average_attendance_duration,
+    CASE 
+        WHEN mb.duration_minutes < 15 THEN 'Quick Meeting'
+        WHEN mb.duration_minutes < 60 THEN 'Standard Meeting'
+        ELSE 'Extended Meeting'
+    END AS meeting_type,
+    CASE 
+        WHEN mb.end_time IS NOT NULL THEN 'Completed'
+        WHEN mb.start_time <= CURRENT_TIMESTAMP() THEN 'In Progress'
+        ELSE 'Scheduled'
+    END AS meeting_status,
+    COALESCE(fum.recording_enabled, FALSE) AS recording_enabled,
+    COALESCE(fum.screen_share_count, 0) AS screen_share_count,
+    COALESCE(fum.chat_message_count, 0) AS chat_message_count,
+    COALESCE(fum.breakout_room_count, 0) AS breakout_room_count,
+    ROUND(mb.data_quality_score, 2) AS quality_score_avg,
+    ROUND(
+        (COALESCE(fum.chat_message_count, 0) * 0.3 + 
+         COALESCE(fum.screen_share_count, 0) * 0.4 + 
+         COALESCE(pm.total_participants, 0) * 0.3) / 10, 2
+    ) AS engagement_score,
+    mb.load_date,
+    CURRENT_DATE() AS update_date,
+    mb.source_system
 FROM meeting_base mb
 LEFT JOIN participant_metrics pm ON mb.meeting_id = pm.meeting_id
 LEFT JOIN feature_usage_metrics fum ON mb.meeting_id = fum.meeting_id
