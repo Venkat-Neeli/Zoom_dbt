@@ -1,0 +1,289 @@
+# =====================================================
+# dbt Test Configuration for Zoom Gold Fact Tables
+# =====================================================
+# File: schema.yml
+# Purpose: Define dbt tests for all Zoom fact tables
+# =====================================================
+
+version: 2
+
+models:
+  # =====================================================
+  # GO_MEETING_FACTS Tests
+  # =====================================================
+  - name: go_meeting_facts
+    description: "Fact table containing meeting-level metrics and attributes"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - meeting_uuid
+      - not_null_proportion:
+          at_least: 0.95
+    columns:
+      - name: meeting_id
+        description: "Unique identifier for the meeting"
+        tests:
+          - not_null
+          - unique
+      - name: meeting_uuid
+        description: "UUID for the meeting"
+        tests:
+          - not_null
+          - unique
+      - name: start_time
+        description: "Meeting start timestamp"
+        tests:
+          - not_null
+      - name: end_time
+        description: "Meeting end timestamp"
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: "end_time >= start_time"
+      - name: duration
+        description: "Meeting duration in minutes"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1440  # 24 hours max
+      - name: participant_count
+        description: "Number of participants in the meeting"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 10000
+
+  # =====================================================
+  # GO_PARTICIPANT_FACTS Tests
+  # =====================================================
+  - name: go_participant_facts
+    description: "Fact table containing participant-level meeting data"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - participant_id
+            - meeting_uuid
+    columns:
+      - name: participant_id
+        description: "Unique identifier for the participant"
+        tests:
+          - not_null
+      - name: meeting_uuid
+        description: "UUID of the meeting"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('go_meeting_facts')
+              field: meeting_uuid
+      - name: join_time
+        description: "Participant join timestamp"
+        tests:
+          - not_null
+      - name: leave_time
+        description: "Participant leave timestamp"
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: "leave_time >= join_time OR leave_time IS NULL"
+      - name: duration
+        description: "Participant duration in meeting (minutes)"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1440
+
+  # =====================================================
+  # GO_WEBINAR_FACTS Tests
+  # =====================================================
+  - name: go_webinar_facts
+    description: "Fact table containing webinar-level metrics"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - webinar_uuid
+    columns:
+      - name: webinar_id
+        description: "Unique identifier for the webinar"
+        tests:
+          - not_null
+          - unique
+      - name: webinar_uuid
+        description: "UUID for the webinar"
+        tests:
+          - not_null
+          - unique
+      - name: start_time
+        description: "Webinar start timestamp"
+        tests:
+          - not_null
+      - name: end_time
+        description: "Webinar end timestamp"
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: "end_time >= start_time OR end_time IS NULL"
+      - name: max_participants
+        description: "Maximum allowed participants"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 1
+              max_value: 100000
+      - name: actual_participants
+        description: "Actual number of participants"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100000
+          - dbt_utils.expression_is_true:
+              expression: "actual_participants <= max_participants OR max_participants IS NULL"
+
+  # =====================================================
+  # GO_BILLING_FACTS Tests
+  # =====================================================
+  - name: go_billing_facts
+    description: "Fact table containing billing information"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - account_id
+            - billing_period
+            - billing_type
+    columns:
+      - name: account_id
+        description: "Account identifier"
+        tests:
+          - not_null
+      - name: billing_period
+        description: "Billing period in YYYY-MM format"
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "LENGTH(billing_period) = 7 AND billing_period LIKE '____-__'"
+      - name: amount
+        description: "Billing amount"
+        tests:
+          - not_null
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1000000
+      - name: billing_type
+        description: "Type of billing"
+        tests:
+          - accepted_values:
+              values: ['SUBSCRIPTION', 'USAGE', 'ONE_TIME', 'FREE', 'TRIAL', 'PROMOTIONAL']
+
+  # =====================================================
+  # GO_USAGE_FACTS Tests
+  # =====================================================
+  - name: go_usage_facts
+    description: "Fact table containing usage metrics"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - account_id
+            - usage_date
+            - feature_name
+    columns:
+      - name: account_id
+        description: "Account identifier"
+        tests:
+          - not_null
+      - name: usage_date
+        description: "Date of usage"
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "usage_date <= CURRENT_DATE()"
+          - dbt_utils.expression_is_true:
+              expression: "usage_date >= '2020-01-01'"
+      - name: feature_name
+        description: "Name of the feature used"
+        tests:
+          - not_null
+      - name: usage_count
+        description: "Number of times feature was used"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1000000
+      - name: usage_duration
+        description: "Duration of feature usage in minutes"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 10080  # 1 week max
+
+  # =====================================================
+  # GO_QUALITY_FACTS Tests
+  # =====================================================
+  - name: go_quality_facts
+    description: "Fact table containing quality metrics"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - meeting_uuid
+            - participant_id
+            - quality_metric
+    columns:
+      - name: meeting_uuid
+        description: "UUID of the meeting"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('go_meeting_facts')
+              field: meeting_uuid
+      - name: participant_id
+        description: "Participant identifier"
+        tests:
+          - not_null
+      - name: quality_metric
+        description: "Type of quality metric"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['AUDIO_QUALITY', 'VIDEO_QUALITY', 'CONNECTION_QUALITY', 'OVERALL_QUALITY']
+      - name: quality_score
+        description: "Quality score (0-100)"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 100
+      - name: quality_rating
+        description: "Quality rating category"
+        tests:
+          - accepted_values:
+              values: ['POOR', 'FAIR', 'GOOD', 'EXCELLENT']
+              quote: false
+      - name: created_date
+        description: "Date when quality record was created"
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "created_date <= CURRENT_DATE()"
+
+# =====================================================
+# Custom Generic Tests
+# =====================================================
+tests:
+  - name: test_meeting_participant_consistency
+    description: "Ensure meeting participant counts match actual participants"
+    
+  - name: test_billing_amount_consistency
+    description: "Validate billing amounts are reasonable for account types"
+    
+  - name: test_quality_score_rating_alignment
+    description: "Ensure quality scores align with quality ratings"
+    
+  - name: test_data_freshness_all_tables
+    description: "Check that all tables have recent data"
+
+# =====================================================
+# Macros for Custom Tests
+# =====================================================
+# Note: These would typically be in separate macro files
+# but are documented here for reference
+
+# Macro: not_null_proportion
+# Purpose: Test that a minimum proportion of records are not null
+# Usage: Applied to critical fields where some nulls are acceptable
+
+# Macro: cross_table_consistency
+# Purpose: Test consistency between related tables
+# Usage: Validate referential integrity and business rules
