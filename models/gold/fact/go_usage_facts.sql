@@ -1,8 +1,6 @@
 {{ config(
     materialized='table',
-    cluster_by=['load_date'],
-    pre_hook="INSERT INTO {{ ref('audit_log') }} (table_name, operation, start_time, status) VALUES ('go_usage_facts', 'transform_start', CURRENT_TIMESTAMP(), 'RUNNING')",
-    post_hook="INSERT INTO {{ ref('audit_log') }} (table_name, operation, end_time, status) VALUES ('go_usage_facts', 'transform_end', CURRENT_TIMESTAMP(), 'SUCCESS')"
+    cluster_by=['load_date']
 ) }}
 
 WITH usage_base AS (
