@@ -1,6 +1,8 @@
 {{ config(
     materialized='table',
-    cluster_by=['load_date']
+    cluster_by=['usage_date', 'meeting_id'],
+    pre_hook="INSERT INTO {{ ref('audit_log') }} (table_name, operation, timestamp) VALUES ('go_usage_facts', 'transform_start', CURRENT_TIMESTAMP())",
+    post_hook="INSERT INTO {{ ref('audit_log') }} (table_name, operation, timestamp) VALUES ('go_usage_facts', 'transform_complete', CURRENT_TIMESTAMP())"
 ) }}
 
 WITH usage_base AS (
@@ -20,9 +22,6 @@ WITH usage_base AS (
     FROM {{ ref('si_feature_usage') }}
     WHERE record_status = 'ACTIVE'
         AND data_quality_score >= 0.8
-        AND usage_id IS NOT NULL
-        AND meeting_id IS NOT NULL
-        AND feature_name IS NOT NULL
 ),
 
 meeting_context AS (
@@ -31,10 +30,10 @@ meeting_context AS (
         host_id,
         meeting_topic,
         start_time,
-        end_time,
         duration_minutes
     FROM {{ ref('si_meetings') }}
     WHERE record_status = 'ACTIVE'
+        AND data_quality_score >= 0.8
 ),
 
 user_context AS (
@@ -42,75 +41,85 @@ user_context AS (
         user_id,
         user_name,
         email,
-        company,
-        plan_type
+        company
     FROM {{ ref('si_users') }}
     WHERE record_status = 'ACTIVE'
+        AND data_quality_score >= 0.8
+),
+
+final AS (
+    SELECT 
+        -- Primary Keys
+        CONCAT('UF_', ub.usage_id, '_', ub.usage_date::STRING) as usage_fact_id,
+        ub.usage_id,
+        ub.meeting_id,
+        
+        -- User and Organization Context
+        mc.host_id as user_id,
+        COALESCE(uc.company, 'INDIVIDUAL') as organization_id,
+        
+        -- Time Dimensions
+        ub.usage_date,
+        EXTRACT(YEAR FROM ub.usage_date) as usage_year,
+        EXTRACT(MONTH FROM ub.usage_date) as usage_month,
+        EXTRACT(QUARTER FROM ub.usage_date) as usage_quarter,
+        EXTRACT(DOW FROM ub.usage_date) as day_of_week,
+        EXTRACT(HOUR FROM mc.start_time) as usage_hour,
+        
+        -- Feature Details
+        ub.feature_name,
+        ub.usage_count,
+        
+        -- Feature Categorization
+        CASE 
+            WHEN ub.feature_name IN ('Screen Sharing', 'Breakout Rooms', 'Whiteboard') THEN 'COLLABORATION'
+            WHEN ub.feature_name IN ('Chat', 'Reactions', 'Hand Raise') THEN 'ENGAGEMENT'
+            WHEN ub.feature_name IN ('Recording', 'Transcription') THEN 'CONTENT'
+            WHEN ub.feature_name IN ('Q&A', 'Polling') THEN 'INTERACTION'
+            ELSE 'OTHER'
+        END as feature_category,
+        
+        -- Usage Intensity Classification
+        CASE 
+            WHEN ub.usage_count >= 50 THEN 'HIGH_USAGE'
+            WHEN ub.usage_count >= 10 THEN 'MEDIUM_USAGE'
+            WHEN ub.usage_count > 0 THEN 'LOW_USAGE'
+            ELSE 'NO_USAGE'
+        END as usage_intensity,
+        
+        -- Meeting Context
+        mc.meeting_topic,
+        mc.duration_minutes as meeting_duration,
+        
+        -- User Context
+        uc.user_name,
+        uc.email,
+        
+        -- Calculated Metrics
+        CASE 
+            WHEN mc.duration_minutes > 0 THEN 
+                ROUND(ub.usage_count::FLOAT / (mc.duration_minutes / 60.0), 2)
+            ELSE 0 
+        END as usage_per_hour,
+        
+        -- Meeting Classification by Usage
+        CASE 
+            WHEN ub.usage_count >= 20 THEN 'HIGHLY_INTERACTIVE'
+            WHEN ub.usage_count >= 5 THEN 'MODERATELY_INTERACTIVE'
+            WHEN ub.usage_count > 0 THEN 'LIGHTLY_INTERACTIVE'
+            ELSE 'NON_INTERACTIVE'
+        END as meeting_interaction_level,
+        
+        -- Audit Fields
+        ub.load_date,
+        CURRENT_DATE() as update_date,
+        ub.source_system,
+        CURRENT_TIMESTAMP() as created_at,
+        CURRENT_TIMESTAMP() as updated_at
+        
+    FROM usage_base ub
+    INNER JOIN meeting_context mc ON ub.meeting_id = mc.meeting_id
+    LEFT JOIN user_context uc ON mc.host_id = uc.user_id
 )
 
-SELECT 
-    -- Primary Keys
-    ub.usage_id,
-    ub.meeting_id,
-    
-    -- Usage Details
-    ub.feature_name,
-    ub.usage_count,
-    ub.usage_date,
-    
-    -- Meeting Context
-    mc.host_id,
-    mc.meeting_topic,
-    mc.start_time as meeting_start_time,
-    mc.end_time as meeting_end_time,
-    mc.duration_minutes as meeting_duration_minutes,
-    
-    -- Host Context
-    uc.user_name as host_name,
-    uc.email as host_email,
-    uc.company as host_company,
-    uc.plan_type as host_plan_type,
-    
-    -- Feature Classifications
-    CASE 
-        WHEN ub.feature_name IN ('SCREEN_SHARE', 'WHITEBOARD', 'ANNOTATION') THEN 'COLLABORATION'
-        WHEN ub.feature_name IN ('CHAT', 'REACTIONS', 'POLLS') THEN 'ENGAGEMENT'
-        WHEN ub.feature_name IN ('RECORDING', 'TRANSCRIPT', 'CLOUD_STORAGE') THEN 'CONTENT_MANAGEMENT'
-        WHEN ub.feature_name IN ('BREAKOUT_ROOMS', 'WAITING_ROOM', 'SECURITY') THEN 'MEETING_MANAGEMENT'
-        ELSE 'OTHER'
-    END as feature_category,
-    
-    -- Usage Intensity
-    CASE 
-        WHEN ub.usage_count = 1 THEN 'SINGLE_USE'
-        WHEN ub.usage_count <= 5 THEN 'LOW_USAGE'
-        WHEN ub.usage_count <= 15 THEN 'MODERATE_USAGE'
-        WHEN ub.usage_count <= 30 THEN 'HIGH_USAGE'
-        ELSE 'INTENSIVE_USAGE'
-    END as usage_intensity,
-    
-    -- Calculated Metrics
-    CASE 
-        WHEN mc.duration_minutes > 0 THEN 
-            ROUND(ub.usage_count / (mc.duration_minutes / 60.0), 2)
-        ELSE 0
-    END as usage_per_hour,
-    
-    -- Time Dimensions
-    DATE(ub.usage_date) as usage_date_only,
-    EXTRACT(HOUR FROM ub.usage_date) as usage_hour,
-    DAYOFWEEK(ub.usage_date) as usage_day_of_week,
-    EXTRACT(MONTH FROM ub.usage_date) as usage_month,
-    EXTRACT(YEAR FROM ub.usage_date) as usage_year,
-    
-    -- Quality and Audit Fields
-    ub.data_quality_score,
-    ub.source_system,
-    ub.load_date,
-    ub.update_date,
-    CURRENT_TIMESTAMP() as created_at,
-    CURRENT_TIMESTAMP() as updated_at
-    
-FROM usage_base ub
-LEFT JOIN meeting_context mc ON ub.meeting_id = mc.meeting_id
-LEFT JOIN user_context uc ON mc.host_id = uc.user_id
+SELECT * FROM final
