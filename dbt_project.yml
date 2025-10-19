@@ -2,7 +2,7 @@ name: 'Zoom_Customer_Analytics'
 version: '1.0.0'
 config-version: 2
 
-profile: 'Zoom_Customer_Analytics'
+profile: 'zoom_analytics'
 
 model-paths: ["models"]
 analysis-paths: ["analyses"]
@@ -19,8 +19,6 @@ clean-targets:
 models:
   Zoom_Customer_Analytics:
     +materialized: table
-    silver:
-      +materialized: table
     gold:
       +materialized: table
       fact:
@@ -32,7 +30,18 @@ models:
       aggregated:
         +materialized: table
         +cluster_by: ["load_date"]
+    silver:
+      +materialized: table
+    bronze:
+      +materialized: table
 
 vars:
+  # Global variables
   start_date: '2020-01-01'
   end_date: '2030-12-31'
+  
+on-run-start:
+  - "{{ log('Starting DBT run for Zoom Customer Analytics', info=true) }}"
+
+on-run-end:
+  - "{{ log('Completed DBT run for Zoom Customer Analytics', info=true) }}"
