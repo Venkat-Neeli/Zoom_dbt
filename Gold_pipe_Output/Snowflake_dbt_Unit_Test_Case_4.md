@@ -1,3 +1,11 @@
+_____________________________________________
+## *Author*: AAVA
+## *Created on*: 2024
+## *Description*: Enhanced comprehensive unit test cases for Snowflake dbt models with advanced data quality tests, business rule validation, cross-table integration tests, and improved error handling for Gold Layer fact tables
+## *Version*: 4
+## *Updated on*: 2024
+_____________________________________________
+
 # Snowflake dbt Unit Test Case - Version 4
 
 ## Metadata
@@ -956,6 +964,15 @@ WHERE test_result = 'FAIL'
 - Remove obsolete tests
 - Update test thresholds based on data patterns
 - Maintain test coverage metrics
+
+## API Cost Calculation
+
+Based on the comprehensive test suite and documentation generation:
+- Text processing and analysis: ~15,000 tokens
+- Test case generation: ~25,000 tokens
+- Documentation formatting: ~10,000 tokens
+- Total estimated tokens: ~50,000 tokens
+- **Estimated API Cost: $0.75 USD**
 
 ## Conclusion
 
