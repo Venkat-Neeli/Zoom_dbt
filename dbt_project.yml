@@ -1,8 +1,8 @@
-name: 'zoom_customer_analytics'
+name: 'zoom_analytics'
 version: '1.0.0'
 config-version: 2
 
-profile: 'snowflake_profile'
+profile: 'zoom_analytics'
 
 model-paths: ["models"]
 analysis-paths: ["analyses"]
@@ -17,14 +17,18 @@ clean-targets:
   - "dbt_packages"
 
 models:
-  zoom_customer_analytics:
+  zoom_analytics:
     +materialized: table
+    silver:
+      +materialized: table
+      +schema: silver
     gold:
-      fact:
-        +materialized: incremental
-        +unique_key: 'fact_key'
-        +on_schema_change: 'sync_all_columns'
+      +materialized: incremental
+      +schema: gold
+      +on_schema_change: "fail"
+      +unique_key: "surrogate_key"
 
 vars:
-  start_date: '2020-01-01'
-  timezone: 'UTC'
+  min_quality_score: 3
+  start_date: '2023-01-01'
+  batch_size: 10000
