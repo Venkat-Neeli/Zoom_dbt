@@ -2,10 +2,8 @@ name: 'zoom_customer_analytics'
 version: '1.0.0'
 config-version: 2
 
-# This setting configures which "profile" dbt uses for this project.
-profile: 'zoom_customer_analytics'
+profile: 'snowflake_profile'
 
-# These configurations specify where dbt should look for different types of files.
 model-paths: ["models"]
 analysis-paths: ["analyses"]
 test-paths: ["tests"]
@@ -18,67 +16,15 @@ clean-targets:
   - "target"
   - "dbt_packages"
 
-# Configuring models
 models:
   zoom_customer_analytics:
-    # Gold layer configurations
+    +materialized: table
     gold:
-      +materialized: table
-      +schema: gold
-      
-      # Fact tables
       fact:
         +materialized: incremental
-        +incremental_strategy: merge
-        +cluster_by: ["load_date"]
-        +pre_hook: "ALTER SESSION SET TIMEZONE = 'UTC'"
-        +post_hook: [
-          "ALTER TABLE {{ this }} SET CHANGE_TRACKING = TRUE",
-          "GRANT SELECT ON {{ this }} TO ROLE ANALYTICS_READER"
-        ]
-        +tags: ["gold", "fact"]
+        +unique_key: 'fact_key'
+        +on_schema_change: 'sync_all_columns'
 
-# Variables that can be referenced in models
 vars:
-  # Date range for incremental processing
-  start_date: '2023-01-01'
-  end_date: '2024-12-31'
-  
-  # Quality thresholds
-  min_quality_score: 3.0
-  max_latency_ms: 500
-  max_packet_loss_percent: 5.0
-  
-  # Business rules
-  min_meeting_duration_minutes: 1
-  max_meeting_duration_minutes: 1440
-  
-  # Timezone settings
-  default_timezone: 'UTC'
-  
-  # Feature flags
-  enable_quality_monitoring: true
-  enable_cost_analysis: true
-
-# Test configurations
-tests:
-  +store_failures: true
-  +severity: warn
-
-# Quoting configuration for Snowflake
-quoting:
-  database: false
-  schema: false
-  identifier: false
-
-# Source freshness configuration
-sources:
-  zoom_customer_analytics:
-    freshness:
-      warn_after: {count: 12, period: hour}
-      error_after: {count: 24, period: hour}
-
-# Dispatch configuration for packages
-dispatch:
-  - macro_namespace: dbt_utils
-    search_order: ['zoom_customer_analytics', 'dbt_utils']
+  start_date: '2020-01-01'
+  timezone: 'UTC'
