@@ -1,9 +1,11 @@
-name: 'Zoom_Customer_Analytics'
+name: 'zoom_customer_analytics'
 version: '1.0.0'
 config-version: 2
 
-profile: 'zoom_analytics'
+# This setting configures which "profile" dbt uses for this project.
+profile: 'zoom_customer_analytics'
 
+# These configurations specify where dbt should look for different types of files.
 model-paths: ["models"]
 analysis-paths: ["analyses"]
 test-paths: ["tests"]
@@ -16,32 +18,60 @@ clean-targets:
   - "target"
   - "dbt_packages"
 
+# Configuring models
 models:
-  Zoom_Customer_Analytics:
-    +materialized: table
+  zoom_customer_analytics:
+    # Gold layer configurations
     gold:
       +materialized: table
+      +schema: gold
+      
+      # Fact tables
       fact:
         +materialized: table
-        +cluster_by: ["load_date"]
-      dimensional:
-        +materialized: table
-        +cluster_by: ["load_date"]
-      aggregated:
-        +materialized: table
-        +cluster_by: ["load_date"]
-    silver:
-      +materialized: table
-    bronze:
-      +materialized: table
+        +cluster_by: load_date
+        +pre_hook: "ALTER SESSION SET TIMEZONE = 'UTC'"
+        +post_hook: [
+          "ALTER TABLE {{ this }} SET CHANGE_TRACKING = TRUE",
+          "GRANT SELECT ON {{ this }} TO ROLE ANALYTICS_READER"
+        ]
 
+# Variables that can be referenced in models
 vars:
-  # Global variables
-  start_date: '2020-01-01'
-  end_date: '2030-12-31'
+  # Date range for incremental processing
+  start_date: '2023-01-01'
+  end_date: '2024-12-31'
   
-on-run-start:
-  - "{{ log('Starting DBT run for Zoom Customer Analytics', info=true) }}"
+  # Quality thresholds
+  min_quality_score: 3.0
+  max_latency_ms: 500
+  max_packet_loss_percent: 5.0
+  
+  # Business rules
+  min_meeting_duration_minutes: 1
+  max_meeting_duration_minutes: 1440
+  
+  # Timezone settings
+  default_timezone: 'UTC'
+  
+  # Feature flags
+  enable_quality_monitoring: true
+  enable_cost_analysis: true
 
-on-run-end:
-  - "{{ log('Completed DBT run for Zoom Customer Analytics', info=true) }}"
+# Test configurations
+tests:
+  +store_failures: true
+  +severity: warn
+
+# Quoting configuration for Snowflake
+quoting:
+  database: false
+  schema: false
+  identifier: false
+
+# Source freshness configuration
+sources:
+  zoom_customer_analytics:
+    freshness:
+      warn_after: {count: 12, period: hour}
+      error_after: {count: 24, period: hour}
