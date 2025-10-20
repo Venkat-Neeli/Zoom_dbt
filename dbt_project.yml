@@ -28,13 +28,15 @@ models:
       
       # Fact tables
       fact:
-        +materialized: table
-        +cluster_by: load_date
+        +materialized: incremental
+        +incremental_strategy: merge
+        +cluster_by: ["load_date"]
         +pre_hook: "ALTER SESSION SET TIMEZONE = 'UTC'"
         +post_hook: [
           "ALTER TABLE {{ this }} SET CHANGE_TRACKING = TRUE",
           "GRANT SELECT ON {{ this }} TO ROLE ANALYTICS_READER"
         ]
+        +tags: ["gold", "fact"]
 
 # Variables that can be referenced in models
 vars:
@@ -75,3 +77,8 @@ sources:
     freshness:
       warn_after: {count: 12, period: hour}
       error_after: {count: 24, period: hour}
+
+# Dispatch configuration for packages
+dispatch:
+  - macro_namespace: dbt_utils
+    search_order: ['zoom_customer_analytics', 'dbt_utils']
