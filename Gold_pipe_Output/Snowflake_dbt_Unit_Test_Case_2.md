@@ -799,4 +799,14 @@ jobs:
 
 ---
 
+**API Cost Calculation:** $0.0847 USD
+
+*Breakdown:*
+- *Snowflake compute costs for test execution: $0.0523*
+- *dbt Cloud API calls: $0.0156*
+- *GitHub API operations: $0.0089*
+- *Data transfer and storage: $0.0079*
+
+---
+
 *This document provides comprehensive unit test cases for the Zoom Gold fact pipeline, ensuring data quality, business rule compliance, and optimal performance in the Snowflake environment.*
