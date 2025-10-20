@@ -1,0 +1,52 @@
+version: 2
+
+models:
+  - name: go_meeting_facts
+    description: "Gold layer fact table for meeting analytics with comprehensive metrics and KPIs"
+    columns:
+      - name: meeting_fact_key
+        description: "Surrogate key for the meeting fact record"
+        tests:
+          - unique
+          - not_null
+      - name: meeting_id
+        description: "Unique identifier for the meeting"
+        tests:
+          - not_null
+      - name: meeting_uuid
+        description: "Universal unique identifier for the meeting"
+        tests:
+          - not_null
+      - name: host_id
+        description: "Identifier of the meeting host"
+        tests:
+          - not_null
+      - name: attendance_rate_percent
+        description: "Percentage of planned participants who actually attended"
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+      - name: engagement_ratio
+        description: "Ratio of total participant minutes to meeting duration"
+        tests:
+          - dbt_expectations.expect_column_values_to_be_of_type:
+              column_type: number
+      - name: load_date
+        description: "Date when the record was loaded"
+        tests:
+          - not_null
+
+sources:
+  - name: silver
+    description: "Silver layer tables with cleaned and standardized data"
+    tables:
+      - name: silver_meetings
+        description: "Cleaned meeting data from bronze layer"
+        freshness:
+          warn_after: {count: 1, period: day}
+          error_after: {count: 2, period: day}
+      - name: silver_meeting_participants
+        description: "Cleaned meeting participant data"
+      - name: silver_meeting_quality
+        description: "Cleaned meeting quality and performance data"
