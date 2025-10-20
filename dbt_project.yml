@@ -1,8 +1,8 @@
-name: 'zoom_analytics'
+name: 'Zoom_Customer_Analytics'
 version: '1.0.0'
 config-version: 2
 
-profile: 'zoom_analytics'
+profile: 'Zoom_Customer_Analytics'
 
 model-paths: ["models"]
 analysis-paths: ["analyses"]
@@ -17,7 +17,7 @@ clean-targets:
   - "dbt_packages"
 
 models:
-  zoom_analytics:
+  Zoom_Customer_Analytics:
     +materialized: table
     silver:
       +materialized: table
@@ -25,10 +25,12 @@ models:
     gold:
       +materialized: incremental
       +schema: gold
-      +on_schema_change: "fail"
-      +unique_key: "surrogate_key"
+      +on_schema_change: "sync_all_columns"
+      fact:
+        +unique_key: "surrogate_key"
+        +incremental_strategy: "merge"
 
 vars:
-  min_quality_score: 3
+  min_quality_score: 0.7
   start_date: '2023-01-01'
   batch_size: 10000
