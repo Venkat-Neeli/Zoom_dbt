@@ -1,0 +1,172 @@
+version: 2
+
+sources:
+  - name: silver
+    description: "Silver layer tables with cleansed and validated data"
+    tables:
+      - name: si_users
+        description: "User information from silver layer"
+        columns:
+          - name: user_id
+            description: "Unique identifier for users"
+            tests:
+              - not_null
+              - unique
+      - name: si_meetings
+        description: "Meeting information from silver layer"
+        columns:
+          - name: meeting_id
+            description: "Unique identifier for meetings"
+            tests:
+              - not_null
+              - unique
+      - name: si_participants
+        description: "Participant information from silver layer"
+      - name: si_feature_usage
+        description: "Feature usage information from silver layer"
+      - name: si_webinars
+        description: "Webinar information from silver layer"
+      - name: si_support_tickets
+        description: "Support ticket information from silver layer"
+      - name: si_licenses
+        description: "License information from silver layer"
+      - name: si_billing_events
+        description: "Billing event information from silver layer"
+
+models:
+  - name: go_meeting_facts
+    description: "Gold layer fact table for meeting analytics"
+    columns:
+      - name: meeting_fact_id
+        description: "Surrogate key for meeting facts"
+        tests:
+          - not_null
+          - unique
+      - name: meeting_id
+        description: "Business key for meetings"
+        tests:
+          - not_null
+      - name: participant_count
+        description: "Number of participants in the meeting"
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 1000
+      - name: duration_minutes
+        description: "Meeting duration in minutes"
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 1440
+      - name: engagement_score
+        description: "Calculated engagement score"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['High', 'Medium', 'Low']
+
+  - name: go_participant_facts
+    description: "Gold layer fact table for participant analytics"
+    columns:
+      - name: participant_fact_id
+        description: "Surrogate key for participant facts"
+        tests:
+          - not_null
+          - unique
+      - name: meeting_id
+        description: "Foreign key to meetings"
+        tests:
+          - not_null
+      - name: attendance_duration
+        description: "Duration of participant attendance in minutes"
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 1440
+
+  - name: go_webinar_facts
+    description: "Gold layer fact table for webinar analytics"
+    columns:
+      - name: webinar_fact_id
+        description: "Surrogate key for webinar facts"
+        tests:
+          - not_null
+          - unique
+      - name: webinar_id
+        description: "Business key for webinars"
+        tests:
+          - not_null
+      - name: attendance_rate
+        description: "Percentage of registrants who attended"
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+
+  - name: go_billing_facts
+    description: "Gold layer fact table for billing analytics"
+    columns:
+      - name: billing_fact_id
+        description: "Surrogate key for billing facts"
+        tests:
+          - not_null
+          - unique
+      - name: event_id
+        description: "Business key for billing events"
+        tests:
+          - not_null
+      - name: amount
+        description: "Billing amount"
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100000
+
+  - name: go_usage_facts
+    description: "Gold layer fact table for usage analytics"
+    columns:
+      - name: usage_fact_id
+        description: "Surrogate key for usage facts"
+        tests:
+          - not_null
+          - unique
+      - name: user_id
+        description: "Foreign key to users"
+        tests:
+          - not_null
+      - name: usage_date
+        description: "Date of usage"
+        tests:
+          - not_null
+
+  - name: go_quality_facts
+    description: "Gold layer fact table for quality analytics"
+    columns:
+      - name: quality_fact_id
+        description: "Surrogate key for quality facts"
+        tests:
+          - not_null
+          - unique
+      - name: meeting_id
+        description: "Foreign key to meetings"
+        tests:
+          - not_null
+      - name: audio_quality_score
+        description: "Audio quality score (0-100)"
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+      - name: video_quality_score
+        description: "Video quality score (0-100)"
+        tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
