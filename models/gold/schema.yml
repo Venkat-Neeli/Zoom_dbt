@@ -1,0 +1,127 @@
+version: 2
+
+models:
+  - name: go_meeting_facts
+    description: "Gold layer fact table for meeting analytics"
+    columns:
+      - name: meeting_fact_key
+        description: "Unique surrogate key for meeting facts"
+        tests:
+          - unique
+          - not_null
+      - name: meeting_id
+        description: "Meeting identifier"
+        tests:
+          - not_null
+      - name: total_participants
+        description: "Total number of participants in the meeting"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1000
+      - name: duration_minutes
+        description: "Meeting duration in minutes"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1440
+
+  - name: go_participant_facts
+    description: "Gold layer fact table for participant analytics"
+    columns:
+      - name: participant_fact_key
+        description: "Unique surrogate key for participant facts"
+        tests:
+          - unique
+          - not_null
+      - name: participant_id
+        description: "Participant identifier"
+        tests:
+          - not_null
+      - name: participation_duration_minutes
+        description: "Duration of participation in minutes"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1440
+
+  - name: go_webinar_facts
+    description: "Gold layer fact table for webinar analytics"
+    columns:
+      - name: webinar_fact_key
+        description: "Unique surrogate key for webinar facts"
+        tests:
+          - unique
+          - not_null
+      - name: webinar_id
+        description: "Webinar identifier"
+        tests:
+          - not_null
+      - name: registrants
+        description: "Number of webinar registrants"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 10000
+
+  - name: go_billing_facts
+    description: "Gold layer fact table for billing analytics"
+    columns:
+      - name: billing_fact_key
+        description: "Unique surrogate key for billing facts"
+        tests:
+          - unique
+          - not_null
+      - name: event_id
+        description: "Billing event identifier"
+        tests:
+          - not_null
+      - name: amount
+        description: "Billing amount"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: -10000
+              max_value: 100000
+
+  - name: go_usage_facts
+    description: "Gold layer fact table for feature usage analytics"
+    columns:
+      - name: usage_fact_key
+        description: "Unique surrogate key for usage facts"
+        tests:
+          - unique
+          - not_null
+      - name: usage_id
+        description: "Usage identifier"
+        tests:
+          - not_null
+      - name: usage_count
+        description: "Feature usage count"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1000
+
+  - name: go_quality_facts
+    description: "Gold layer fact table for data quality metrics"
+    columns:
+      - name: quality_fact_key
+        description: "Unique surrogate key for quality facts"
+        tests:
+          - unique
+          - not_null
+      - name: table_name
+        description: "Name of the source table"
+        tests:
+          - not_null
+      - name: total_records
+        description: "Total number of records in the table"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+      - name: avg_quality_score
+        description: "Average data quality score"
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 1
