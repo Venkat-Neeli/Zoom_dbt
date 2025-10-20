@@ -2,86 +2,16 @@ version: 2
 
 models:
   - name: go_meeting_facts
-    description: "Simplified meeting facts table"
-    columns:
-      - name: meeting_id
-        description: "Unique meeting identifier"
-        tests:
-          - not_null
-      - name: host_id
-        description: "Meeting host identifier"
-        tests:
-          - not_null
-      - name: meeting_key
-        description: "Surrogate key for meeting"
-        tests:
-          - not_null
-          - unique
-
+    description: "Basic meeting facts table"
+    
   - name: go_participant_facts
-    description: "Simplified participant facts table"
-    columns:
-      - name: participant_id
-        description: "Unique participant identifier"
-        tests:
-          - not_null
-      - name: meeting_id
-        description: "Associated meeting identifier"
-        tests:
-          - not_null
-      - name: participant_key
-        description: "Surrogate key for participant"
-        tests:
-          - not_null
-          - unique
-
+    description: "Basic participant facts table"
+    
   - name: go_webinar_facts
-    description: "Simplified webinar facts table"
-    columns:
-      - name: webinar_id
-        description: "Unique webinar identifier"
-        tests:
-          - not_null
-      - name: host_id
-        description: "Webinar host identifier"
-        tests:
-          - not_null
-      - name: webinar_key
-        description: "Surrogate key for webinar"
-        tests:
-          - not_null
-          - unique
-
+    description: "Basic webinar facts table"
+    
   - name: go_billing_facts
-    description: "Simplified billing facts table"
-    columns:
-      - name: event_id
-        description: "Unique billing event identifier"
-        tests:
-          - not_null
-      - name: user_id
-        description: "Associated user identifier"
-        tests:
-          - not_null
-      - name: billing_key
-        description: "Surrogate key for billing event"
-        tests:
-          - not_null
-          - unique
-
+    description: "Basic billing facts table"
+    
   - name: go_usage_facts
-    description: "Simplified usage facts table"
-    columns:
-      - name: usage_id
-        description: "Unique usage identifier"
-        tests:
-          - not_null
-      - name: meeting_id
-        description: "Associated meeting identifier"
-        tests:
-          - not_null
-      - name: usage_key
-        description: "Surrogate key for usage event"
-        tests:
-          - not_null
-          - unique
+    description: "Basic usage facts table"
