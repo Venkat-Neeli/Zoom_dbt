@@ -1,14 +1,12 @@
 # Snowflake dbt Unit Test Case - Zoom Gold Fact Pipeline
 
-## Metadata
-
-- **Author**: AAVA
-- **Created on**: 2024-12-19
-- **Description**: Comprehensive unit test case for Zoom Gold fact data pipeline in Snowflake using dbt. This document provides detailed test scenarios, validation rules, and dbt test scripts to ensure data quality, transformation accuracy, and business rule compliance.
-- **Version**: 1
-- **Updated on**: 2024-12-19
-
----
+_____________________________________________
+## *Author*: AAVA
+## *Created on*: 2024-12-19
+## *Description*: Comprehensive unit test case for Zoom Gold fact data pipeline in Snowflake using dbt
+## *Version*: 1
+## *Updated on*: 2024-12-19
+_____________________________________________
 
 ## Executive Summary
 
