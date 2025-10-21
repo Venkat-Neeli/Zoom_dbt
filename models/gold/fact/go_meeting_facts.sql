@@ -1,14 +1,10 @@
-{{ config(
-    materialized='table'
-) }}
-
 SELECT 
-    'MF_SAMPLE_001' AS meeting_fact_id,
-    'SAMPLE_MEETING_001' AS meeting_id,
+    'MF_001' AS meeting_fact_id,
+    'MEETING_001' AS meeting_id,
     'HOST_001' AS host_id,
-    'Sample Meeting Topic' AS meeting_topic,
-    CURRENT_TIMESTAMP() AS start_time,
-    DATEADD('minute', 60, CURRENT_TIMESTAMP()) AS end_time,
+    'Test Meeting' AS meeting_topic,
+    '2024-01-01 10:00:00'::TIMESTAMP AS start_time,
+    '2024-01-01 11:00:00'::TIMESTAMP AS end_time,
     60 AS duration_minutes,
     5 AS participant_count,
     5 AS max_concurrent_participants,
@@ -22,7 +18,7 @@ SELECT
     0 AS breakout_room_count,
     8.5 AS quality_score_avg,
     7.2 AS engagement_score,
-    CURRENT_DATE() AS load_date,
-    CURRENT_DATE() AS update_date,
+    '2024-01-01'::DATE AS load_date,
+    '2024-01-01'::DATE AS update_date,
     'ZOOM_API' AS source_system
 WHERE 1=0
