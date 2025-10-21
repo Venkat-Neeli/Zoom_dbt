@@ -1,9 +1,7 @@
 {{ config(
     materialized='incremental',
     on_schema_change='sync_all_columns',
-    unique_key='billing_fact_id',
-    pre_hook="INSERT INTO {{ ref('go_process_audit') }} (execution_id, pipeline_name, start_time, status, source_system, target_system, process_type, user_executed) SELECT UUID_STRING() AS execution_id, 'go_billing_facts' AS pipeline_name, CURRENT_TIMESTAMP() AS start_time, 'STARTED' AS status, 'SILVER' AS source_system, 'GOLD' AS target_system, 'FACT_LOAD' AS process_type, 'DBT_USER' AS user_executed WHERE '{{ this.name }}' != 'go_process_audit'",
-    post_hook="INSERT INTO {{ ref('go_process_audit') }} (execution_id, pipeline_name, end_time, status, records_processed, source_system, target_system, process_type, user_executed) SELECT UUID_STRING() AS execution_id, 'go_billing_facts' AS pipeline_name, CURRENT_TIMESTAMP() AS end_time, 'COMPLETED' AS status, (SELECT COUNT(*) FROM {{ this }}) AS records_processed, 'SILVER' AS source_system, 'GOLD' AS target_system, 'FACT_LOAD' AS process_type, 'DBT_USER' AS user_executed WHERE '{{ this.name }}' != 'go_process_audit'"
+    unique_key='billing_fact_id'
 ) }}
 
 WITH billing_base AS (
@@ -21,7 +19,7 @@ WITH billing_base AS (
     LEFT JOIN {{ ref('si_users') }} u ON be.user_id = u.user_id
     WHERE be.record_status = 'ACTIVE'
     {% if is_incremental() %}
-        AND be.update_date > (SELECT MAX(update_date) FROM {{ this }})
+        AND be.update_date > (SELECT COALESCE(MAX(update_date), '1900-01-01') FROM {{ this }})
     {% endif %}
 ),
 
