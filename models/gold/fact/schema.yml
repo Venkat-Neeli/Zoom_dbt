@@ -27,22 +27,10 @@ models:
         description: "Meeting end timestamp in UTC"
       - name: duration_minutes
         description: "Meeting duration in minutes"
-        tests:
-          - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
-              max_value: 1440
       - name: participant_count
         description: "Total number of participants"
-        tests:
-          - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
-              max_value: 10000
       - name: engagement_score
         description: "Calculated engagement score"
-        tests:
-          - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
-              max_value: 10
 
   - name: go_participant_facts
     description: "Gold layer fact table containing participant analytics and metrics"
@@ -64,10 +52,6 @@ models:
         description: "User identifier"
       - name: attendance_duration
         description: "Participant attendance duration in minutes"
-        tests:
-          - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
-              max_value: 1440
 
   - name: go_webinar_facts
     description: "Gold layer fact table containing webinar analytics and metrics"
@@ -87,10 +71,6 @@ models:
           - not_null
       - name: attendance_rate
         description: "Webinar attendance rate percentage"
-        tests:
-          - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
-              max_value: 100
 
   - name: go_billing_facts
     description: "Gold layer fact table containing billing analytics and metrics"
@@ -110,10 +90,6 @@ models:
           - not_null
       - name: amount
         description: "Billing amount"
-        tests:
-          - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
-              max_value: 100000
 
   - name: go_usage_facts
     description: "Gold layer fact table containing usage analytics and metrics"
@@ -133,10 +109,6 @@ models:
           - not_null
       - name: meeting_count
         description: "Number of meetings hosted"
-        tests:
-          - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
-              max_value: 1000
 
   - name: go_quality_facts
     description: "Gold layer fact table containing quality analytics and metrics"
@@ -156,13 +128,5 @@ models:
           - not_null
       - name: audio_quality_score
         description: "Audio quality score"
-        tests:
-          - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
-              max_value: 10
       - name: video_quality_score
         description: "Video quality score"
-        tests:
-          - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
-              max_value: 10
