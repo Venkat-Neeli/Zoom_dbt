@@ -1,9 +1,7 @@
 {{ config(
     materialized='incremental',
     on_schema_change='sync_all_columns',
-    unique_key='participant_fact_id',
-    pre_hook="INSERT INTO {{ ref('go_process_audit') }} (execution_id, pipeline_name, start_time, status, source_system, target_system, process_type) SELECT UUID_STRING(), 'go_participant_facts', CURRENT_TIMESTAMP(), 'STARTED', 'SILVER', 'GOLD', 'FACT_LOAD' WHERE '{{ this.name }}' != 'go_process_audit'",
-    post_hook="INSERT INTO {{ ref('go_process_audit') }} (execution_id, pipeline_name, end_time, status, records_processed, source_system, target_system, process_type) SELECT UUID_STRING(), 'go_participant_facts', CURRENT_TIMESTAMP(), 'COMPLETED', (SELECT COUNT(*) FROM {{ this }}), 'SILVER', 'GOLD', 'FACT_LOAD' WHERE '{{ this.name }}' != 'go_process_audit'"
+    unique_key='participant_fact_id'
 ) }}
 
 WITH participant_base AS (
@@ -29,17 +27,15 @@ WITH participant_base AS (
 feature_usage_agg AS (
     SELECT 
         f.meeting_id,
-        COALESCE(u.user_id, 'GUEST_USER') AS user_id,
+        m.host_id AS user_id,
         SUM(CASE WHEN f.feature_name = 'Screen Sharing' THEN f.usage_count ELSE 0 END) AS screen_share_duration,
         SUM(CASE WHEN f.feature_name = 'Chat' THEN f.usage_count ELSE 0 END) AS chat_messages_sent,
         COUNT(*) AS interaction_count,
         MAX(CASE WHEN f.feature_name = 'Video' THEN TRUE ELSE FALSE END) AS video_enabled
     FROM {{ ref('si_feature_usage') }} f
-    LEFT JOIN {{ ref('si_users') }} u ON f.meeting_id IN (
-        SELECT meeting_id FROM {{ ref('si_meetings') }} WHERE host_id = u.user_id
-    )
+    LEFT JOIN {{ ref('si_meetings') }} m ON f.meeting_id = m.meeting_id
     WHERE f.record_status = 'ACTIVE'
-    GROUP BY f.meeting_id, u.user_id
+    GROUP BY f.meeting_id, m.host_id
 ),
 
 final_transform AS (
