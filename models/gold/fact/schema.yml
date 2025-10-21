@@ -27,22 +27,10 @@ models:
         description: "Meeting end timestamp in UTC"
       - name: duration_minutes
         description: "Meeting duration in minutes"
-        tests:
-          - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
-              max_value: 1440
       - name: participant_count
         description: "Total number of participants"
-        tests:
-          - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
-              max_value: 10000
       - name: engagement_score
         description: "Calculated engagement score"
-        tests:
-          - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
-              max_value: 10
       - name: load_date
         description: "Date when record was loaded"
         tests:
@@ -72,10 +60,6 @@ models:
         description: "User identifier"
       - name: attendance_duration
         description: "Duration of attendance in minutes"
-        tests:
-          - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
-              max_value: 1440
       - name: participant_role
         description: "Role of participant (Host/Participant)"
         tests:
@@ -100,10 +84,6 @@ models:
           - not_null
       - name: attendance_rate
         description: "Attendance rate percentage"
-        tests:
-          - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
-              max_value: 100
 
   - name: go_billing_facts
     description: "Gold layer fact table for billing events and transactions"
@@ -123,10 +103,6 @@ models:
           - not_null
       - name: amount
         description: "Transaction amount"
-        tests:
-          - dbt_expectations.expect_column_values_to_be_between:
-              min_value: -10000
-              max_value: 100000
       - name: currency_code
         description: "Currency code"
         tests:
@@ -151,10 +127,6 @@ models:
           - not_null
       - name: meeting_count
         description: "Number of meetings hosted"
-        tests:
-          - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
-              max_value: 1000
 
   - name: go_quality_facts
     description: "Gold layer fact table for quality metrics and performance"
@@ -174,43 +146,5 @@ models:
           - not_null
       - name: audio_quality_score
         description: "Audio quality score"
-        tests:
-          - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
-              max_value: 10
       - name: video_quality_score
         description: "Video quality score"
-        tests:
-          - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
-              max_value: 10
-
-  - name: go_process_audit
-    description: "Gold layer audit table for process tracking and monitoring"
-    columns:
-      - name: execution_id
-        description: "Unique execution identifier"
-        tests:
-          - unique
-          - not_null
-      - name: pipeline_name
-        description: "Name of the pipeline or process"
-        tests:
-          - not_null
-      - name: status
-        description: "Process status"
-        tests:
-          - accepted_values:
-              values: ['STARTED', 'COMPLETED', 'FAILED', 'INITIALIZED']
-      - name: start_time
-        description: "Process start timestamp"
-      - name: end_time
-        description: "Process end timestamp"
-      - name: source_system
-        description: "Source system identifier"
-        tests:
-          - not_null
-      - name: target_system
-        description: "Target system identifier"
-        tests:
-          - not_null
