@@ -3,7 +3,7 @@
 ) }}
 
 SELECT 
-    'BF_' || 'SAMPLE_001' AS billing_fact_id,
+    'BF_SAMPLE_001' AS billing_fact_id,
     'EVENT_001' AS event_id,
     'USER_001' AS user_id,
     'ORG_001' AS organization_id,
@@ -20,4 +20,4 @@ SELECT
     CURRENT_DATE() AS load_date,
     CURRENT_DATE() AS update_date,
     'ZOOM_API' AS source_system
-WHERE FALSE  -- This creates the table structure without data
+WHERE 1=0
