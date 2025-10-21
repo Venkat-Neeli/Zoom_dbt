@@ -1,14 +1,12 @@
 # Snowflake dbt DE Pipeline Reviewer - Zoom Gold Fact Pipeline
 
-## Metadata Requirements
-
-- **Author**: AAVA
-- **Created on**: 
-- **Description**: Comprehensive reviewer document for Zoom Gold fact pipeline validation in Snowflake dbt environment
-- **Version**: 1
-- **Updated on**: 
-
----
+_____________________________________________
+## *Author*: AAVA
+## *Created on*: 
+## *Description*: Comprehensive reviewer document for Zoom Gold fact pipeline validation in Snowflake dbt environment
+## *Version*: 1
+## *Updated on*: 
+_____________________________________________
 
 ## Pipeline Summary
 
