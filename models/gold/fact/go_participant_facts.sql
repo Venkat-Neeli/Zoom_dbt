@@ -1,9 +1,7 @@
 {{ config(
     materialized='incremental',
     on_schema_change='sync_all_columns',
-    unique_key='participant_fact_id',
-    pre_hook="INSERT INTO {{ ref('go_process_audit') }} (execution_id, pipeline_name, start_time, status, source_system, target_system, process_type, user_executed) SELECT UUID_STRING() AS execution_id, 'go_participant_facts' AS pipeline_name, CURRENT_TIMESTAMP() AS start_time, 'STARTED' AS status, 'SILVER' AS source_system, 'GOLD' AS target_system, 'FACT_LOAD' AS process_type, 'DBT_USER' AS user_executed WHERE '{{ this.name }}' != 'go_process_audit'",
-    post_hook="INSERT INTO {{ ref('go_process_audit') }} (execution_id, pipeline_name, end_time, status, records_processed, source_system, target_system, process_type, user_executed) SELECT UUID_STRING() AS execution_id, 'go_participant_facts' AS pipeline_name, CURRENT_TIMESTAMP() AS end_time, 'COMPLETED' AS status, (SELECT COUNT(*) FROM {{ this }}) AS records_processed, 'SILVER' AS source_system, 'GOLD' AS target_system, 'FACT_LOAD' AS process_type, 'DBT_USER' AS user_executed WHERE '{{ this.name }}' != 'go_process_audit'"
+    unique_key='participant_fact_id'
 ) }}
 
 WITH participant_base AS (
@@ -22,7 +20,7 @@ WITH participant_base AS (
     LEFT JOIN {{ ref('si_meetings') }} m ON p.meeting_id = m.meeting_id
     WHERE p.record_status = 'ACTIVE'
     {% if is_incremental() %}
-        AND p.update_date > (SELECT MAX(update_date) FROM {{ this }})
+        AND p.update_date > (SELECT COALESCE(MAX(update_date), '1900-01-01') FROM {{ this }})
     {% endif %}
 ),
 
@@ -46,9 +44,9 @@ final_participant_facts AS (
         COALESCE(pb.meeting_id, 'UNKNOWN') AS meeting_id,
         pb.participant_id,
         COALESCE(pb.user_id, 'GUEST_USER') AS user_id,
-        CONVERT_TIMEZONE('UTC', pb.join_time) AS join_time,
-        CONVERT_TIMEZONE('UTC', pb.leave_time) AS leave_time,
-        DATEDIFF('minute', pb.join_time, pb.leave_time) AS attendance_duration,
+        pb.join_time,
+        pb.leave_time,
+        DATEDIFF('minute', pb.join_time, COALESCE(pb.leave_time, pb.join_time)) AS attendance_duration,
         CASE 
             WHEN pb.user_id = pb.meeting_host_id THEN 'Host' 
             ELSE 'Participant' 
@@ -58,7 +56,7 @@ final_participant_facts AS (
         COALESCE(fup.screen_share_duration, 0) AS screen_share_duration,
         COALESCE(fup.chat_messages_sent, 0) AS chat_messages_sent,
         COALESCE(fup.interaction_count, 0) AS interaction_count,
-        ROUND(pb.data_quality_score, 2) AS connection_quality_rating,
+        ROUND(COALESCE(pb.data_quality_score, 0), 2) AS connection_quality_rating,
         'Desktop' AS device_type,
         'Unknown' AS geographic_location,
         pb.load_date,
