@@ -1,9 +1,7 @@
 {{ config(
     materialized='incremental',
     on_schema_change='sync_all_columns',
-    unique_key='meeting_fact_id',
-    pre_hook="INSERT INTO {{ ref('go_process_audit') }} (execution_id, pipeline_name, start_time, status, source_system, target_system, process_type) SELECT UUID_STRING(), 'go_meeting_facts', CURRENT_TIMESTAMP(), 'STARTED', 'SILVER', 'GOLD', 'FACT_LOAD' WHERE '{{ this.name }}' != 'go_process_audit'",
-    post_hook="INSERT INTO {{ ref('go_process_audit') }} (execution_id, pipeline_name, end_time, status, records_processed, source_system, target_system, process_type) SELECT UUID_STRING(), 'go_meeting_facts', CURRENT_TIMESTAMP(), 'COMPLETED', (SELECT COUNT(*) FROM {{ this }}), 'SILVER', 'GOLD', 'FACT_LOAD' WHERE '{{ this.name }}' != 'go_process_audit'"
+    unique_key='meeting_fact_id'
 ) }}
 
 WITH meeting_base AS (
@@ -49,7 +47,7 @@ feature_aggregates AS (
 
 final_transform AS (
     SELECT 
-        CONCAT('MF_', mb.meeting_id, '_', CURRENT_TIMESTAMP()::STRING) AS meeting_fact_id,
+        CONCAT('MF_', mb.meeting_id, '_', DATE_PART('epoch', CURRENT_TIMESTAMP())::STRING) AS meeting_fact_id,
         COALESCE(mb.meeting_id, 'UNKNOWN') AS meeting_id,
         CASE WHEN mb.host_id IS NOT NULL THEN mb.host_id ELSE 'UNKNOWN_HOST' END AS host_id,
         TRIM(COALESCE(mb.meeting_topic, 'No Topic Specified')) AS meeting_topic,
