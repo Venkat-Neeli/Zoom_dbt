@@ -1,12 +1,8 @@
-{{ config(
-    materialized='table'
-) }}
-
 SELECT 
-    'QF_SAMPLE_001' AS quality_fact_id,
+    'QF_001' AS quality_fact_id,
     'MEETING_001' AS meeting_id,
     'PARTICIPANT_001' AS participant_id,
-    'DC_SAMPLE_001' AS device_connection_id,
+    'DC_001' AS device_connection_id,
     8.5 AS audio_quality_score,
     9.0 AS video_quality_score,
     8.8 AS connection_stability_rating,
@@ -15,7 +11,7 @@ SELECT
     120 AS bandwidth_utilization,
     35.5 AS cpu_usage_percentage,
     450 AS memory_usage_mb,
-    CURRENT_DATE() AS load_date,
-    CURRENT_DATE() AS update_date,
+    '2024-01-01'::DATE AS load_date,
+    '2024-01-01'::DATE AS update_date,
     'ZOOM_API' AS source_system
 WHERE 1=0
