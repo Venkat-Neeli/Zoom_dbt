@@ -1,0 +1,168 @@
+version: 2
+
+models:
+  - name: go_meeting_facts
+    description: "Gold layer fact table containing meeting analytics and metrics"
+    columns:
+      - name: meeting_fact_id
+        description: "Unique identifier for meeting fact record"
+        tests:
+          - unique
+          - not_null
+      - name: meeting_id
+        description: "Meeting identifier from source system"
+        tests:
+          - not_null
+      - name: host_id
+        description: "Host user identifier"
+        tests:
+          - not_null
+      - name: meeting_topic
+        description: "Meeting topic or subject"
+      - name: start_time
+        description: "Meeting start timestamp in UTC"
+        tests:
+          - not_null
+      - name: end_time
+        description: "Meeting end timestamp in UTC"
+      - name: duration_minutes
+        description: "Meeting duration in minutes"
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 1440
+      - name: participant_count
+        description: "Total number of participants"
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 10000
+      - name: engagement_score
+        description: "Calculated engagement score"
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 10
+
+  - name: go_participant_facts
+    description: "Gold layer fact table containing participant analytics and metrics"
+    columns:
+      - name: participant_fact_id
+        description: "Unique identifier for participant fact record"
+        tests:
+          - unique
+          - not_null
+      - name: meeting_id
+        description: "Meeting identifier"
+        tests:
+          - not_null
+      - name: participant_id
+        description: "Participant identifier"
+        tests:
+          - not_null
+      - name: user_id
+        description: "User identifier"
+      - name: attendance_duration
+        description: "Participant attendance duration in minutes"
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 1440
+
+  - name: go_webinar_facts
+    description: "Gold layer fact table containing webinar analytics and metrics"
+    columns:
+      - name: webinar_fact_id
+        description: "Unique identifier for webinar fact record"
+        tests:
+          - unique
+          - not_null
+      - name: webinar_id
+        description: "Webinar identifier"
+        tests:
+          - not_null
+      - name: host_id
+        description: "Webinar host identifier"
+        tests:
+          - not_null
+      - name: attendance_rate
+        description: "Webinar attendance rate percentage"
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
+
+  - name: go_billing_facts
+    description: "Gold layer fact table containing billing analytics and metrics"
+    columns:
+      - name: billing_fact_id
+        description: "Unique identifier for billing fact record"
+        tests:
+          - unique
+          - not_null
+      - name: event_id
+        description: "Billing event identifier"
+        tests:
+          - not_null
+      - name: user_id
+        description: "User identifier"
+        tests:
+          - not_null
+      - name: amount
+        description: "Billing amount"
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100000
+
+  - name: go_usage_facts
+    description: "Gold layer fact table containing usage analytics and metrics"
+    columns:
+      - name: usage_fact_id
+        description: "Unique identifier for usage fact record"
+        tests:
+          - unique
+          - not_null
+      - name: user_id
+        description: "User identifier"
+        tests:
+          - not_null
+      - name: usage_date
+        description: "Usage date"
+        tests:
+          - not_null
+      - name: meeting_count
+        description: "Number of meetings hosted"
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 1000
+
+  - name: go_quality_facts
+    description: "Gold layer fact table containing quality analytics and metrics"
+    columns:
+      - name: quality_fact_id
+        description: "Unique identifier for quality fact record"
+        tests:
+          - unique
+          - not_null
+      - name: meeting_id
+        description: "Meeting identifier"
+        tests:
+          - not_null
+      - name: participant_id
+        description: "Participant identifier"
+        tests:
+          - not_null
+      - name: audio_quality_score
+        description: "Audio quality score"
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 10
+      - name: video_quality_score
+        description: "Video quality score"
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 10
