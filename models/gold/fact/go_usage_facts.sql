@@ -3,7 +3,7 @@
 ) }}
 
 SELECT 
-    'UF_' || 'SAMPLE_001' AS usage_fact_id,
+    'UF_SAMPLE_001' AS usage_fact_id,
     'USER_001' AS user_id,
     'ORG_001' AS organization_id,
     CURRENT_DATE() AS usage_date,
@@ -17,4 +17,4 @@ SELECT
     CURRENT_DATE() AS load_date,
     CURRENT_DATE() AS update_date,
     'ZOOM_API' AS source_system
-WHERE FALSE  -- This creates the table structure without data
+WHERE 1=0
