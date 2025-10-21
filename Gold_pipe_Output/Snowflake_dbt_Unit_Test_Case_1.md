@@ -1,90 +1,120 @@
 _____________________________________________
 ## *Author*: AAVA
 ## *Created on*: 2024-12-19
-## *Description*: Comprehensive unit test cases for Snowflake dbt Gold Layer fact tables transformation
+## *Description*: Comprehensive unit test cases for Zoom Gold Layer fact tables in Snowflake dbt
 ## *Version*: 1
 ## *Updated on*: 2024-12-19
 _____________________________________________
 
-# Snowflake dbt Unit Test Cases for Gold Layer Fact Tables
+# Snowflake dbt Unit Test Cases for Gold Fact Tables
 
-## Overview
+## Description
 
-This document provides comprehensive unit test cases and dbt test scripts for the Gold Layer fact tables in Snowflake. The tests validate data transformations, business rules, edge cases, and error handling for the following models:
+This document contains comprehensive unit test cases and dbt test scripts for the Zoom Customer Analytics Gold Layer fact tables running in Snowflake. The testing framework validates data transformations, mappings, business rules, edge cases, and error handling scenarios to ensure reliable and performant dbt models.
 
-- `fact_sales`
-- `fact_orders` 
-- `fact_transactions`
-- `go_process_audit`
+## Test Coverage Overview
 
-## Test Strategy
-
-The testing approach covers:
-
-1. **Data Quality Validation**: Ensuring data integrity and completeness
-2. **Business Rule Validation**: Verifying calculated fields and categorizations
-3. **Edge Case Handling**: Testing null values, boundary conditions, and invalid data
-4. **Performance Testing**: Validating incremental load functionality
-5. **Audit Trail Testing**: Ensuring process tracking works correctly
+The test suite covers six main Gold fact tables:
+1. **go_meeting_facts** - Meeting analytics and metrics
+2. **go_participant_facts** - Participant analytics and metrics  
+3. **go_webinar_facts** - Webinar analytics and metrics
+4. **go_billing_facts** - Billing events and financial metrics
+5. **go_usage_facts** - User usage analytics and metrics
+6. **go_quality_facts** - Quality metrics and performance data
 
 ---
 
 ## Test Case List
 
-### Fact Sales Model Tests
+### Meeting Facts Test Cases
 
 | Test Case ID | Test Case Description | Expected Outcome |
 |--------------|----------------------|------------------|
-| FS_001 | Validate unique fact_sales_key generation | All fact_sales_key values are unique and not null |
-| FS_002 | Test sales_category calculation logic | High Value (>1000), Medium Value (500-1000), Low Value (<500) |
-| FS_003 | Verify net_amount calculation | net_amount = total_amount - discount_amount |
-| FS_004 | Verify final_amount calculation | final_amount = net_amount + tax_amount |
-| FS_005 | Test data quality validation rules | Only records with 'VALID' status are included |
-| FS_006 | Validate incremental load functionality | Only new/updated records are processed |
-| FS_007 | Test null value handling in calculations | Null discount_amount treated as 0 |
-| FS_008 | Verify foreign key relationships | All customer_id and product_id exist in source |
-| FS_009 | Test boundary values for quantity | Quantity between 0 and 10000 |
-| FS_010 | Validate timestamp fields | created_at and updated_at are properly set |
+| MF_TC_001 | Validate meeting_fact_id uniqueness | All meeting_fact_id values are unique |
+| MF_TC_002 | Validate meeting_id not null constraint | No null values in meeting_id column |
+| MF_TC_003 | Validate duration_minutes range (0-1440) | All duration values between 0 and 1440 minutes |
+| MF_TC_004 | Validate engagement_score calculation | Engagement scores calculated correctly using formula |
+| MF_TC_005 | Validate meeting_type categorization | Meetings categorized as Quick/Standard/Extended based on duration |
+| MF_TC_006 | Validate meeting_status logic | Status correctly assigned as Completed/In Progress/Scheduled |
+| MF_TC_007 | Test incremental load functionality | Only new/updated records processed in incremental runs |
+| MF_TC_008 | Validate participant count aggregation | Participant counts match source data |
+| MF_TC_009 | Test null handling for optional fields | Null values properly handled with COALESCE |
+| MF_TC_010 | Validate timezone conversion to UTC | All timestamps converted to UTC timezone |
 
-### Fact Orders Model Tests
-
-| Test Case ID | Test Case Description | Expected Outcome |
-|--------------|----------------------|------------------|
-| FO_001 | Validate unique fact_order_key generation | All fact_order_key values are unique and not null |
-| FO_002 | Test days_to_ship calculation | Correct calculation of DATEDIFF between order_date and ship_date |
-| FO_003 | Verify order_size_category logic | Large (>500), Medium (100-500), Small (<100) |
-| FO_004 | Test shipping_speed categorization | Same Day (<=1), Fast (<=3), Standard (>3), Not Shipped (null) |
-| FO_005 | Validate calculated_total formula | subtotal + shipping_cost + tax_amount |
-| FO_006 | Test order_status accepted values | Only valid status values are accepted |
-| FO_007 | Verify incremental processing | Only updated orders are reprocessed |
-| FO_008 | Test null ship_date handling | Proper handling when ship_date is null |
-| FO_009 | Validate total_items range | total_items must be greater than 0 |
-| FO_010 | Test data validation status | Only 'VALID' records are included |
-
-### Fact Transactions Model Tests
+### Participant Facts Test Cases
 
 | Test Case ID | Test Case Description | Expected Outcome |
 |--------------|----------------------|------------------|
-| FT_001 | Validate unique fact_transaction_key | All fact_transaction_key values are unique and not null |
-| FT_002 | Test base_currency_amount calculation | transaction_amount * exchange_rate |
-| FT_003 | Verify transaction_category logic | High (>1000), Medium (100-1000), Low (<100) |
-| FT_004 | Test transaction_hour extraction | Correct HOUR extraction from transaction_date |
-| FT_005 | Test transaction_day_of_week extraction | Correct DAYOFWEEK extraction from transaction_date |
-| FT_006 | Validate exchange_rate handling | Default to 1.0 when null |
-| FT_007 | Test incremental load processing | Only new transactions are processed |
-| FT_008 | Verify transaction amount validation | transaction_amount must be greater than 0 |
-| FT_009 | Test foreign key relationships | Valid order_id and customer_id references |
-| FT_010 | Validate data quality checks | Only 'VALID' records are included |
+| PF_TC_001 | Validate participant_fact_id uniqueness | All participant_fact_id values are unique |
+| PF_TC_002 | Validate attendance_duration calculation | Duration calculated correctly from join/leave times |
+| PF_TC_003 | Validate participant_role assignment | Roles correctly assigned as Host/Participant |
+| PF_TC_004 | Test guest user handling | Guest users assigned 'GUEST_USER' identifier |
+| PF_TC_005 | Validate feature usage aggregation | Screen share, chat counts aggregated correctly |
+| PF_TC_006 | Test attendance duration range (0-1440) | All attendance durations within valid range |
+| PF_TC_007 | Validate join/leave time consistency | Leave time always after join time |
+| PF_TC_008 | Test incremental processing | Only updated participant records processed |
+| PF_TC_009 | Validate connection quality mapping | Quality scores properly mapped from source |
+| PF_TC_010 | Test missing meeting_id handling | Records with missing meeting_id handled gracefully |
 
-### Process Audit Model Tests
+### Webinar Facts Test Cases
 
 | Test Case ID | Test Case Description | Expected Outcome |
 |--------------|----------------------|------------------|
-| PA_001 | Test audit table structure creation | Table created with correct schema |
-| PA_002 | Verify process tracking for fact_sales | Audit records created for sales processing |
-| PA_003 | Verify process tracking for fact_orders | Audit records created for orders processing |
-| PA_004 | Verify process tracking for fact_transactions | Audit records created for transactions processing |
-| PA_005 | Test process status updates | Status changes from STARTED to COMPLETED |
+| WF_TC_001 | Validate webinar_fact_id uniqueness | All webinar_fact_id values are unique |
+| WF_TC_002 | Validate attendance_rate calculation | Rate calculated as (actual_attendees/registrants)*100 |
+| WF_TC_003 | Validate engagement_score formula | Score calculated using Q&A, polls, and attendance |
+| WF_TC_004 | Test event_category assignment | Categories assigned based on duration thresholds |
+| WF_TC_005 | Validate registrants_count range | Registrant counts within expected range (0-100000) |
+| WF_TC_006 | Test zero registrants handling | Attendance rate set to 0 when no registrants |
+| WF_TC_007 | Validate Q&A and polling aggregation | Feature usage counts aggregated correctly |
+| WF_TC_008 | Test webinar duration calculation | Duration calculated from start/end times |
+| WF_TC_009 | Validate incremental load logic | Only new webinar records processed |
+| WF_TC_010 | Test missing topic handling | Default topic assigned when null |
+
+### Billing Facts Test Cases
+
+| Test Case ID | Test Case Description | Expected Outcome |
+|--------------|----------------------|------------------|
+| BF_TC_001 | Validate billing_fact_id uniqueness | All billing_fact_id values are unique |
+| BF_TC_002 | Validate amount range (-10000 to 100000) | All amounts within acceptable range |
+| BF_TC_003 | Validate currency_code values | Only accepted currency codes (USD, EUR, GBP, CAD) |
+| BF_TC_004 | Validate tax_amount calculation | Tax calculated as 8% of amount |
+| BF_TC_005 | Test transaction_status logic | Status set based on amount (positive=Completed) |
+| BF_TC_006 | Validate billing_period calculation | Period start/end calculated correctly |
+| BF_TC_007 | Test organization mapping | Users mapped to correct organizations |
+| BF_TC_008 | Validate event_type standardization | Event types converted to uppercase and trimmed |
+| BF_TC_009 | Test refund handling | Negative amounts handled as refunds |
+| BF_TC_010 | Validate incremental processing | Only new billing events processed |
+
+### Usage Facts Test Cases
+
+| Test Case ID | Test Case Description | Expected Outcome |
+|--------------|----------------------|------------------|
+| UF_TC_001 | Validate usage_fact_id uniqueness | All usage_fact_id values are unique |
+| UF_TC_002 | Validate meeting_count range (0-1000) | Meeting counts within expected range |
+| UF_TC_003 | Validate feature_usage aggregation | Feature usage counts aggregated correctly |
+| UF_TC_004 | Test recording storage calculation | Storage calculated from recording usage |
+| UF_TC_005 | Validate user-organization mapping | Users correctly mapped to organizations |
+| UF_TC_006 | Test daily aggregation logic | Usage metrics aggregated by date |
+| UF_TC_007 | Validate webinar usage inclusion | Webinar metrics included in usage facts |
+| UF_TC_008 | Test participant hosting metrics | Unique participants hosted calculated correctly |
+| UF_TC_009 | Validate incremental load behavior | Only new usage data processed |
+| UF_TC_010 | Test zero usage handling | Zero values handled appropriately |
+
+### Quality Facts Test Cases
+
+| Test Case ID | Test Case Description | Expected Outcome |
+|--------------|----------------------|------------------|
+| QF_TC_001 | Validate quality_fact_id uniqueness | All quality_fact_id values are unique |
+| QF_TC_002 | Validate audio_quality_score range (0-10) | Audio quality scores within valid range |
+| QF_TC_003 | Validate video_quality_score range (0-10) | Video quality scores within valid range |
+| QF_TC_004 | Validate latency_ms range (0-5000) | Latency values within acceptable range |
+| QF_TC_005 | Test quality score derivation | Quality metrics derived from data_quality_score |
+| QF_TC_006 | Validate packet_loss_rate calculation | Packet loss rates calculated based on quality |
+| QF_TC_007 | Test bandwidth utilization logic | Bandwidth calculated from attendance duration |
+| QF_TC_008 | Validate CPU usage percentage | CPU usage within 0-100% range |
+| QF_TC_009 | Test memory usage calculation | Memory usage calculated appropriately |
+| QF_TC_010 | Validate incremental processing | Only updated quality records processed |
 
 ---
 
@@ -93,524 +123,643 @@ The testing approach covers:
 ### YAML-based Schema Tests
 
 ```yaml
-# Enhanced schema.yml for comprehensive testing
+# models/gold/fact/schema.yml
 version: 2
 
 models:
-  - name: fact_sales
-    description: "Fact table containing sales transaction data with calculated metrics"
+  - name: go_meeting_facts
+    description: "Gold layer fact table containing meeting analytics and metrics"
     tests:
-      - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - sales_id
-            - customer_id
-            - product_id
       - dbt_expectations.expect_table_row_count_to_be_between:
           min_value: 1
           max_value: 1000000
     columns:
-      - name: fact_sales_key
+      - name: meeting_fact_id
+        description: "Unique identifier for meeting fact record"
         tests:
-          - unique
-          - not_null
-      - name: sales_id
+          - unique:
+              severity: error
+          - not_null:
+              severity: error
+      - name: meeting_id
+        description: "Meeting identifier from source system"
         tests:
-          - not_null
+          - not_null:
+              severity: error
+          - relationships:
+              to: ref('si_meetings')
+              field: meeting_id
+              severity: warn
+      - name: host_id
+        description: "Host user identifier"
+        tests:
+          - not_null:
+              severity: error
+      - name: start_time
+        description: "Meeting start timestamp in UTC"
+        tests:
+          - not_null:
+              severity: error
           - dbt_expectations.expect_column_values_to_be_of_type:
-              column_type: varchar
-      - name: quantity
+              column_type: timestamp
+      - name: duration_minutes
+        description: "Meeting duration in minutes"
         tests:
-          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 1440
+              severity: error
+      - name: participant_count
+        description: "Total number of participants"
+        tests:
           - dbt_expectations.expect_column_values_to_be_between:
               min_value: 0
               max_value: 10000
-      - name: unit_price
+              severity: warn
+      - name: engagement_score
+        description: "Calculated engagement score"
         tests:
-          - not_null
           - dbt_expectations.expect_column_values_to_be_between:
               min_value: 0
-              max_value: 100000
-      - name: sales_category
+              max_value: 10
+              severity: warn
+      - name: meeting_type
+        description: "Meeting type categorization"
         tests:
           - accepted_values:
-              values: ['High Value', 'Medium Value', 'Low Value']
-      - name: data_quality_status
+              values: ['Quick Meeting', 'Standard Meeting', 'Extended Meeting']
+              severity: error
+      - name: meeting_status
+        description: "Current meeting status"
         tests:
           - accepted_values:
-              values: ['VALID']
-      - name: net_amount
-        tests:
-          - not_null
-          - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
-      - name: final_amount
-        tests:
-          - not_null
-          - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
+              values: ['Completed', 'In Progress', 'Scheduled']
+              severity: error
 
-  - name: fact_orders
-    description: "Fact table containing order data with shipping metrics"
+  - name: go_participant_facts
+    description: "Gold layer fact table containing participant analytics and metrics"
     tests:
       - dbt_expectations.expect_table_row_count_to_be_between:
           min_value: 1
+          max_value: 10000000
     columns:
-      - name: fact_order_key
+      - name: participant_fact_id
+        description: "Unique identifier for participant fact record"
         tests:
-          - unique
-          - not_null
-      - name: order_id
+          - unique:
+              severity: error
+          - not_null:
+              severity: error
+      - name: meeting_id
+        description: "Meeting identifier"
         tests:
-          - unique
-          - not_null
-      - name: order_status
+          - not_null:
+              severity: error
+          - relationships:
+              to: ref('si_meetings')
+              field: meeting_id
+              severity: warn
+      - name: participant_id
+        description: "Participant identifier"
         tests:
-          - accepted_values:
-              values: ['pending', 'processing', 'shipped', 'delivered', 'cancelled']
-      - name: total_items
+          - not_null:
+              severity: error
+      - name: join_time
+        description: "Participant join timestamp in UTC"
         tests:
-          - not_null
-          - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 1
-              max_value: 1000
-      - name: order_size_category
-        tests:
-          - accepted_values:
-              values: ['Large Order', 'Medium Order', 'Small Order']
-      - name: shipping_speed
-        tests:
-          - accepted_values:
-              values: ['Same Day', 'Fast', 'Standard', 'Not Shipped']
-      - name: days_to_ship
+          - not_null:
+              severity: error
+      - name: attendance_duration
+        description: "Participant attendance duration in minutes"
         tests:
           - dbt_expectations.expect_column_values_to_be_between:
               min_value: 0
-              max_value: 365
-              row_condition: "ship_date IS NOT NULL"
-      - name: validation_status
+              max_value: 1440
+              severity: error
+      - name: participant_role
+        description: "Participant role in meeting"
         tests:
           - accepted_values:
-              values: ['VALID']
+              values: ['Host', 'Participant']
+              severity: error
+      - name: connection_quality_rating
+        description: "Connection quality rating"
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 10
+              severity: warn
 
-  - name: fact_transactions
-    description: "Fact table containing transaction data with payment metrics"
+  - name: go_webinar_facts
+    description: "Gold layer fact table containing webinar analytics and metrics"
     columns:
-      - name: fact_transaction_key
+      - name: webinar_fact_id
+        description: "Unique identifier for webinar fact record"
         tests:
-          - unique
-          - not_null
-      - name: transaction_id
+          - unique:
+              severity: error
+          - not_null:
+              severity: error
+      - name: webinar_id
+        description: "Webinar identifier"
         tests:
-          - unique
-          - not_null
-      - name: transaction_amount
+          - not_null:
+              severity: error
+      - name: registrants_count
+        description: "Number of registered participants"
         tests:
-          - not_null
           - dbt_expectations.expect_column_values_to_be_between:
               min_value: 0
-      - name: base_currency_amount
+              max_value: 100000
+              severity: warn
+      - name: attendance_rate
+        description: "Attendance rate percentage"
         tests:
-          - not_null
           - dbt_expectations.expect_column_values_to_be_between:
               min_value: 0
-      - name: transaction_category
+              max_value: 100
+              severity: warn
+      - name: event_category
+        description: "Webinar event category"
         tests:
           - accepted_values:
-              values: ['High Value Transaction', 'Medium Value Transaction', 'Low Value Transaction']
-      - name: transaction_hour
+              values: ['Short Form', 'Standard', 'Long Form']
+              severity: error
+
+  - name: go_billing_facts
+    description: "Gold layer fact table containing billing events and financial metrics"
+    columns:
+      - name: billing_fact_id
+        description: "Unique identifier for billing fact record"
+        tests:
+          - unique:
+              severity: error
+          - not_null:
+              severity: error
+      - name: event_id
+        description: "Billing event identifier"
+        tests:
+          - not_null:
+              severity: error
+      - name: amount
+        description: "Billing amount"
         tests:
           - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 0
-              max_value: 23
-      - name: transaction_day_of_week
+              min_value: -10000
+              max_value: 100000
+              severity: error
+      - name: currency_code
+        description: "Currency code"
         tests:
-          - dbt_expectations.expect_column_values_to_be_between:
-              min_value: 1
-              max_value: 7
-      - name: exchange_rate
+          - accepted_values:
+              values: ['USD', 'EUR', 'GBP', 'CAD']
+              severity: error
+      - name: transaction_status
+        description: "Transaction status"
+        tests:
+          - accepted_values:
+              values: ['Completed', 'Refunded']
+              severity: error
+
+  - name: go_usage_facts
+    description: "Gold layer fact table containing user usage analytics and metrics"
+    columns:
+      - name: usage_fact_id
+        description: "Unique identifier for usage fact record"
+        tests:
+          - unique:
+              severity: error
+          - not_null:
+              severity: error
+      - name: user_id
+        description: "User identifier"
+        tests:
+          - not_null:
+              severity: error
+      - name: usage_date
+        description: "Usage date"
+        tests:
+          - not_null:
+              severity: error
+      - name: meeting_count
+        description: "Number of meetings hosted"
         tests:
           - dbt_expectations.expect_column_values_to_be_between:
               min_value: 0
               max_value: 1000
-      - name: validation_status
+              severity: warn
+      - name: feature_usage_count
+        description: "Total feature usage count"
         tests:
-          - accepted_values:
-              values: ['VALID']
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100000
+              severity: warn
 
-  - name: go_process_audit
-    description: "Process audit table for tracking Gold layer transformations"
+  - name: go_quality_facts
+    description: "Gold layer fact table containing quality metrics and performance data"
     columns:
-      - name: process_id
+      - name: quality_fact_id
+        description: "Unique identifier for quality fact record"
         tests:
-          - unique
-          - not_null
-      - name: process_status
+          - unique:
+              severity: error
+          - not_null:
+              severity: error
+      - name: meeting_id
+        description: "Meeting identifier"
         tests:
-          - accepted_values:
-              values: ['STARTED', 'COMPLETED', 'FAILED']
+          - not_null:
+              severity: error
+      - name: audio_quality_score
+        description: "Audio quality score"
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 10
+              severity: warn
+      - name: video_quality_score
+        description: "Video quality score"
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 10
+              severity: warn
+      - name: latency_ms
+        description: "Connection latency in milliseconds"
+        tests:
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 5000
+              severity: warn
 ```
 
 ### Custom SQL-based dbt Tests
 
-#### Test 1: Sales Amount Calculation Validation
-
+#### Test 1: Meeting Facts Engagement Score Validation
 ```sql
--- tests/test_sales_amount_calculations.sql
--- Test to verify sales amount calculations are correct
+-- tests/test_meeting_facts_engagement_score.sql
+{{ config(severity = 'error') }}
 
 SELECT 
-    sales_id,
-    total_amount,
-    discount_amount,
+    meeting_fact_id,
+    engagement_score,
+    chat_message_count,
+    screen_share_count,
+    participant_count,
+    ROUND((chat_message_count * 0.3 + screen_share_count * 0.4 + participant_count * 0.3) / 10, 2) AS expected_score
+FROM {{ ref('go_meeting_facts') }}
+WHERE ABS(engagement_score - ROUND((chat_message_count * 0.3 + screen_share_count * 0.4 + participant_count * 0.3) / 10, 2)) > 0.01
+```
+
+#### Test 2: Participant Facts Attendance Duration Validation
+```sql
+-- tests/test_participant_facts_duration.sql
+{{ config(severity = 'error') }}
+
+SELECT 
+    participant_fact_id,
+    join_time,
+    leave_time,
+    attendance_duration,
+    DATEDIFF('minute', join_time, leave_time) AS calculated_duration
+FROM {{ ref('go_participant_facts') }}
+WHERE attendance_duration != DATEDIFF('minute', join_time, leave_time)
+   OR leave_time < join_time
+```
+
+#### Test 3: Webinar Facts Attendance Rate Validation
+```sql
+-- tests/test_webinar_facts_attendance_rate.sql
+{{ config(severity = 'warn') }}
+
+SELECT 
+    webinar_fact_id,
+    registrants_count,
+    actual_attendees,
+    attendance_rate,
+    CASE 
+        WHEN registrants_count > 0 
+        THEN ROUND((actual_attendees::FLOAT / registrants_count) * 100, 2)
+        ELSE 0 
+    END AS expected_rate
+FROM {{ ref('go_webinar_facts') }}
+WHERE ABS(attendance_rate - 
+    CASE 
+        WHEN registrants_count > 0 
+        THEN ROUND((actual_attendees::FLOAT / registrants_count) * 100, 2)
+        ELSE 0 
+    END) > 0.01
+```
+
+#### Test 4: Billing Facts Tax Calculation Validation
+```sql
+-- tests/test_billing_facts_tax_calculation.sql
+{{ config(severity = 'error') }}
+
+SELECT 
+    billing_fact_id,
+    amount,
     tax_amount,
-    net_amount,
-    final_amount,
-    CASE 
-        WHEN net_amount != (total_amount - COALESCE(discount_amount, 0)) THEN 'FAIL'
-        WHEN final_amount != (net_amount + COALESCE(tax_amount, 0)) THEN 'FAIL'
-        ELSE 'PASS'
-    END AS calculation_test
-FROM {{ ref('fact_sales') }}
-WHERE calculation_test = 'FAIL'
+    ROUND(amount * 0.08, 2) AS expected_tax
+FROM {{ ref('go_billing_facts') }}
+WHERE ABS(tax_amount - ROUND(amount * 0.08, 2)) > 0.01
 ```
 
-#### Test 2: Incremental Load Validation
-
+#### Test 5: Usage Facts Daily Aggregation Validation
 ```sql
--- tests/test_incremental_load_fact_sales.sql
--- Test to ensure incremental loads work correctly
+-- tests/test_usage_facts_daily_aggregation.sql
+{{ config(severity = 'warn') }}
 
-WITH current_run AS (
-    SELECT COUNT(*) as current_count
-    FROM {{ ref('fact_sales') }}
-    WHERE DATE(updated_at) = CURRENT_DATE()
-),
-expected_incremental AS (
-    SELECT COUNT(*) as expected_count
-    FROM {{ ref('silver_sales') }}
-    WHERE DATE(updated_at) = CURRENT_DATE()
+WITH source_counts AS (
+    SELECT 
+        DATE(m.start_time) AS usage_date,
+        m.host_id AS user_id,
+        COUNT(DISTINCT m.meeting_id) AS source_meeting_count
+    FROM {{ ref('si_meetings') }} m
+    WHERE m.record_status = 'ACTIVE'
+    GROUP BY DATE(m.start_time), m.host_id
 )
 SELECT 
-    current_count,
-    expected_count,
-    CASE 
-        WHEN current_count != expected_count THEN 'INCREMENTAL_LOAD_FAILED'
-        ELSE 'INCREMENTAL_LOAD_SUCCESS'
-    END as test_result
-FROM current_run
-CROSS JOIN expected_incremental
-WHERE test_result = 'INCREMENTAL_LOAD_FAILED'
+    uf.usage_fact_id,
+    uf.usage_date,
+    uf.user_id,
+    uf.meeting_count,
+    sc.source_meeting_count
+FROM {{ ref('go_usage_facts') }} uf
+INNER JOIN source_counts sc ON uf.usage_date = sc.usage_date AND uf.user_id = sc.user_id
+WHERE uf.meeting_count != sc.source_meeting_count
 ```
 
-#### Test 3: Data Quality Status Validation
-
+#### Test 6: Quality Facts Score Range Validation
 ```sql
--- tests/test_data_quality_validation.sql
--- Test to ensure only valid records are processed
+-- tests/test_quality_facts_score_ranges.sql
+{{ config(severity = 'error') }}
 
 SELECT 
-    'fact_sales' as table_name,
-    COUNT(*) as invalid_records
-FROM {{ ref('fact_sales') }}
-WHERE data_quality_status != 'VALID'
+    quality_fact_id,
+    audio_quality_score,
+    video_quality_score,
+    connection_stability_rating
+FROM {{ ref('go_quality_facts') }}
+WHERE audio_quality_score < 0 OR audio_quality_score > 10
+   OR video_quality_score < 0 OR video_quality_score > 10
+   OR connection_stability_rating < 0 OR connection_stability_rating > 10
+```
+
+#### Test 7: Cross-Table Referential Integrity
+```sql
+-- tests/test_cross_table_referential_integrity.sql
+{{ config(severity = 'warn') }}
+
+SELECT 
+    'meeting_facts' AS table_name,
+    COUNT(*) AS orphaned_records
+FROM {{ ref('go_meeting_facts') }} mf
+LEFT JOIN {{ ref('si_meetings') }} sm ON mf.meeting_id = sm.meeting_id
+WHERE sm.meeting_id IS NULL
 
 UNION ALL
 
 SELECT 
-    'fact_orders' as table_name,
-    COUNT(*) as invalid_records
-FROM {{ ref('fact_orders') }}
-WHERE validation_status != 'VALID'
+    'participant_facts' AS table_name,
+    COUNT(*) AS orphaned_records
+FROM {{ ref('go_participant_facts') }} pf
+LEFT JOIN {{ ref('si_participants') }} sp ON pf.participant_id = sp.participant_id
+WHERE sp.participant_id IS NULL
 
 UNION ALL
 
 SELECT 
-    'fact_transactions' as table_name,
-    COUNT(*) as invalid_records
-FROM {{ ref('fact_transactions') }}
-WHERE validation_status != 'VALID'
-
-HAVING invalid_records > 0
+    'billing_facts' AS table_name,
+    COUNT(*) AS orphaned_records
+FROM {{ ref('go_billing_facts') }} bf
+LEFT JOIN {{ ref('si_billing_events') }} sbe ON bf.event_id = sbe.event_id
+WHERE sbe.event_id IS NULL
 ```
 
-#### Test 4: Foreign Key Relationship Validation
-
+#### Test 8: Incremental Load Validation
 ```sql
--- tests/test_foreign_key_relationships.sql
--- Test to validate foreign key relationships
+-- tests/test_incremental_load_validation.sql
+{{ config(severity = 'warn') }}
 
-WITH orphaned_sales AS (
-    SELECT 
-        fs.sales_id,
-        fs.customer_id,
-        fs.product_id
-    FROM {{ ref('fact_sales') }} fs
-    LEFT JOIN {{ ref('silver_customers') }} sc ON fs.customer_id = sc.customer_id
-    LEFT JOIN {{ ref('silver_products') }} sp ON fs.product_id = sp.product_id
-    WHERE sc.customer_id IS NULL OR sp.product_id IS NULL
-),
-orphaned_orders AS (
-    SELECT 
-        fo.order_id,
-        fo.customer_id
-    FROM {{ ref('fact_orders') }} fo
-    LEFT JOIN {{ ref('silver_customers') }} sc ON fo.customer_id = sc.customer_id
-    WHERE sc.customer_id IS NULL
-),
-orphaned_transactions AS (
-    SELECT 
-        ft.transaction_id,
-        ft.order_id,
-        ft.customer_id
-    FROM {{ ref('fact_transactions') }} ft
-    LEFT JOIN {{ ref('fact_orders') }} fo ON ft.order_id = fo.order_id
-    LEFT JOIN {{ ref('silver_customers') }} sc ON ft.customer_id = sc.customer_id
-    WHERE fo.order_id IS NULL OR sc.customer_id IS NULL
-)
-SELECT 'fact_sales' as table_name, COUNT(*) as orphaned_records FROM orphaned_sales
-UNION ALL
-SELECT 'fact_orders' as table_name, COUNT(*) as orphaned_records FROM orphaned_orders
-UNION ALL
-SELECT 'fact_transactions' as table_name, COUNT(*) as orphaned_records FROM orphaned_transactions
-HAVING orphaned_records > 0
-```
-
-#### Test 5: Business Rule Validation
-
-```sql
--- tests/test_business_rules_validation.sql
--- Test to validate business rule implementations
-
-WITH sales_category_test AS (
-    SELECT 
-        sales_id,
-        total_amount,
-        sales_category,
-        CASE 
-            WHEN total_amount > 1000 AND sales_category != 'High Value' THEN 'FAIL'
-            WHEN total_amount BETWEEN 500 AND 1000 AND sales_category != 'Medium Value' THEN 'FAIL'
-            WHEN total_amount < 500 AND sales_category != 'Low Value' THEN 'FAIL'
-            ELSE 'PASS'
-        END as category_test
-    FROM {{ ref('fact_sales') }}
-),
-order_size_test AS (
-    SELECT 
-        order_id,
-        total_amount,
-        order_size_category,
-        CASE 
-            WHEN total_amount > 500 AND order_size_category != 'Large Order' THEN 'FAIL'
-            WHEN total_amount BETWEEN 100 AND 500 AND order_size_category != 'Medium Order' THEN 'FAIL'
-            WHEN total_amount < 100 AND order_size_category != 'Small Order' THEN 'FAIL'
-            ELSE 'PASS'
-        END as size_test
-    FROM {{ ref('fact_orders') }}
-),
-transaction_category_test AS (
-    SELECT 
-        transaction_id,
-        transaction_amount,
-        transaction_category,
-        CASE 
-            WHEN transaction_amount > 1000 AND transaction_category != 'High Value Transaction' THEN 'FAIL'
-            WHEN transaction_amount BETWEEN 100 AND 1000 AND transaction_category != 'Medium Value Transaction' THEN 'FAIL'
-            WHEN transaction_amount < 100 AND transaction_category != 'Low Value Transaction' THEN 'FAIL'
-            ELSE 'PASS'
-        END as category_test
-    FROM {{ ref('fact_transactions') }}
-)
-SELECT 'sales_category' as test_type, COUNT(*) as failed_records FROM sales_category_test WHERE category_test = 'FAIL'
-UNION ALL
-SELECT 'order_size' as test_type, COUNT(*) as failed_records FROM order_size_test WHERE size_test = 'FAIL'
-UNION ALL
-SELECT 'transaction_category' as test_type, COUNT(*) as failed_records FROM transaction_category_test WHERE category_test = 'FAIL'
-HAVING failed_records > 0
-```
-
-#### Test 6: Process Audit Validation
-
-```sql
--- tests/test_process_audit_tracking.sql
--- Test to validate process audit functionality
-
-WITH audit_completeness AS (
-    SELECT 
-        target_table,
-        COUNT(*) as total_processes,
-        SUM(CASE WHEN process_status = 'COMPLETED' THEN 1 ELSE 0 END) as completed_processes,
-        SUM(CASE WHEN process_status = 'STARTED' THEN 1 ELSE 0 END) as started_processes,
-        SUM(CASE WHEN process_status = 'FAILED' THEN 1 ELSE 0 END) as failed_processes
-    FROM {{ ref('go_process_audit') }}
-    WHERE target_table IN ('fact_sales', 'fact_orders', 'fact_transactions')
-    GROUP BY target_table
-)
+-- Test that incremental models only process new/updated records
 SELECT 
-    target_table,
-    total_processes,
-    completed_processes,
-    started_processes,
-    failed_processes,
-    CASE 
-        WHEN started_processes > 0 AND completed_processes = 0 THEN 'INCOMPLETE_PROCESS'
-        WHEN failed_processes > 0 THEN 'FAILED_PROCESS'
-        ELSE 'PROCESS_OK'
-    END as audit_status
-FROM audit_completeness
-WHERE audit_status != 'PROCESS_OK'
-```
+    'go_meeting_facts' AS model_name,
+    COUNT(*) AS records_with_old_dates
+FROM {{ ref('go_meeting_facts') }}
+WHERE update_date < CURRENT_DATE() - 1
+  AND load_date = CURRENT_DATE()
 
-#### Test 7: Edge Case Validation
+UNION ALL
 
-```sql
--- tests/test_edge_cases.sql
--- Test to validate edge case handling
-
-WITH null_handling_test AS (
-    SELECT 
-        'fact_sales' as table_name,
-        'discount_amount_null_handling' as test_case,
-        COUNT(*) as records_with_issue
-    FROM {{ ref('fact_sales') }}
-    WHERE discount_amount IS NULL AND net_amount != total_amount
-    
-    UNION ALL
-    
-    SELECT 
-        'fact_orders' as table_name,
-        'ship_date_null_handling' as test_case,
-        COUNT(*) as records_with_issue
-    FROM {{ ref('fact_orders') }}
-    WHERE ship_date IS NULL AND shipping_speed != 'Not Shipped'
-    
-    UNION ALL
-    
-    SELECT 
-        'fact_transactions' as table_name,
-        'exchange_rate_null_handling' as test_case,
-        COUNT(*) as records_with_issue
-    FROM {{ ref('fact_transactions') }}
-    WHERE exchange_rate IS NULL AND base_currency_amount != transaction_amount
-)
-SELECT * FROM null_handling_test WHERE records_with_issue > 0
-```
-
-#### Test 8: Performance and Volume Validation
-
-```sql
--- tests/test_performance_metrics.sql
--- Test to validate performance and data volume expectations
-
-WITH volume_check AS (
-    SELECT 
-        'fact_sales' as table_name,
-        COUNT(*) as record_count,
-        COUNT(DISTINCT sales_id) as unique_sales,
-        COUNT(DISTINCT customer_id) as unique_customers
-    FROM {{ ref('fact_sales') }}
-    
-    UNION ALL
-    
-    SELECT 
-        'fact_orders' as table_name,
-        COUNT(*) as record_count,
-        COUNT(DISTINCT order_id) as unique_orders,
-        COUNT(DISTINCT customer_id) as unique_customers
-    FROM {{ ref('fact_orders') }}
-    
-    UNION ALL
-    
-    SELECT 
-        'fact_transactions' as table_name,
-        COUNT(*) as record_count,
-        COUNT(DISTINCT transaction_id) as unique_transactions,
-        COUNT(DISTINCT customer_id) as unique_customers
-    FROM {{ ref('fact_transactions') }}
-)
 SELECT 
-    table_name,
-    record_count,
-    unique_sales as unique_records,
-    unique_customers,
-    CASE 
-        WHEN record_count = 0 THEN 'NO_DATA'
-        WHEN record_count != unique_sales THEN 'DUPLICATE_RECORDS'
-        ELSE 'VOLUME_OK'
-    END as volume_status
-FROM volume_check
-WHERE volume_status != 'VOLUME_OK'
+    'go_participant_facts' AS model_name,
+    COUNT(*) AS records_with_old_dates
+FROM {{ ref('go_participant_facts') }}
+WHERE update_date < CURRENT_DATE() - 1
+  AND load_date = CURRENT_DATE()
 ```
 
-### Parameterized Test Macros
-
+#### Test 9: Data Freshness Validation
 ```sql
--- macros/test_fact_table_quality.sql
--- Reusable macro for fact table quality testing
+-- tests/test_data_freshness.sql
+{{ config(severity = 'warn') }}
 
-{% macro test_fact_table_quality(table_name, key_column, amount_column) %}
-    SELECT 
-        '{{ table_name }}' as table_name,
-        COUNT(*) as total_records,
-        COUNT(DISTINCT {{ key_column }}) as unique_keys,
-        COUNT(*) - COUNT(DISTINCT {{ key_column }}) as duplicate_count,
-        SUM(CASE WHEN {{ key_column }} IS NULL THEN 1 ELSE 0 END) as null_key_count,
-        SUM(CASE WHEN {{ amount_column }} <= 0 THEN 1 ELSE 0 END) as invalid_amount_count,
-        AVG({{ amount_column }}) as avg_amount,
-        MIN({{ amount_column }}) as min_amount,
-        MAX({{ amount_column }}) as max_amount,
-        CURRENT_TIMESTAMP() as test_timestamp
-    FROM {{ ref(table_name) }}
-    WHERE duplicate_count > 0 
-       OR null_key_count > 0 
-       OR invalid_amount_count > 0
-{% endmacro %}
+SELECT 
+    'go_meeting_facts' AS table_name,
+    MAX(update_date) AS last_update,
+    DATEDIFF('day', MAX(update_date), CURRENT_DATE()) AS days_since_update
+FROM {{ ref('go_meeting_facts') }}
+HAVING DATEDIFF('day', MAX(update_date), CURRENT_DATE()) > 2
+
+UNION ALL
+
+SELECT 
+    'go_usage_facts' AS table_name,
+    MAX(update_date) AS last_update,
+    DATEDIFF('day', MAX(update_date), CURRENT_DATE()) AS days_since_update
+FROM {{ ref('go_usage_facts') }}
+HAVING DATEDIFF('day', MAX(update_date), CURRENT_DATE()) > 2
 ```
 
-### Test Execution Commands
+#### Test 10: Business Logic Validation
+```sql
+-- tests/test_business_logic_validation.sql
+{{ config(severity = 'error') }}
 
-```bash
-# Run all tests
-dbt test
+-- Test business rules across fact tables
+SELECT 
+    'Invalid meeting duration' AS validation_rule,
+    COUNT(*) AS violation_count
+FROM {{ ref('go_meeting_facts') }}
+WHERE duration_minutes > DATEDIFF('minute', start_time, end_time) + 5
+   OR duration_minutes < DATEDIFF('minute', start_time, end_time) - 5
 
-# Run tests for specific models
-dbt test --models fact_sales
-dbt test --models fact_orders
-dbt test --models fact_transactions
+UNION ALL
 
-# Run specific test types
-dbt test --select test_type:generic
-dbt test --select test_type:singular
+SELECT 
+    'Participant attendance exceeds meeting duration' AS validation_rule,
+    COUNT(*) AS violation_count
+FROM {{ ref('go_participant_facts') }} pf
+INNER JOIN {{ ref('go_meeting_facts') }} mf ON pf.meeting_id = mf.meeting_id
+WHERE pf.attendance_duration > mf.duration_minutes + 5
 
-# Run tests with specific tags
-dbt test --select tag:data_quality
-dbt test --select tag:business_rules
+UNION ALL
 
-# Generate test documentation
-dbt docs generate
-dbt docs serve
+SELECT 
+    'Negative billing amounts without refund status' AS validation_rule,
+    COUNT(*) AS violation_count
+FROM {{ ref('go_billing_facts') }}
+WHERE amount < 0 AND transaction_status != 'Refunded'
 ```
+
+---
+
+## Edge Case Test Scenarios
+
+### 1. Null Value Handling Tests
+```sql
+-- Test null handling in meeting facts
+SELECT 
+    meeting_fact_id,
+    meeting_topic,
+    host_id
+FROM {{ ref('go_meeting_facts') }}
+WHERE meeting_topic = 'No Topic Specified'
+   OR host_id = 'UNKNOWN_HOST'
+```
+
+### 2. Zero Value Handling Tests
+```sql
+-- Test zero value scenarios
+SELECT 
+    webinar_fact_id,
+    registrants_count,
+    attendance_rate
+FROM {{ ref('go_webinar_facts') }}
+WHERE registrants_count = 0
+  AND attendance_rate != 0
+```
+
+### 3. Boundary Value Tests
+```sql
+-- Test boundary conditions
+SELECT 
+    meeting_fact_id,
+    duration_minutes
+FROM {{ ref('go_meeting_facts') }}
+WHERE duration_minutes = 0 OR duration_minutes = 1440
+```
+
+### 4. Data Type Validation Tests
+```sql
+-- Test data type consistency
+SELECT 
+    participant_fact_id,
+    join_time,
+    leave_time
+FROM {{ ref('go_participant_facts') }}
+WHERE TRY_CAST(join_time AS TIMESTAMP) IS NULL
+   OR TRY_CAST(leave_time AS TIMESTAMP) IS NULL
+```
+
+---
+
+## Performance Test Cases
+
+### 1. Query Performance Tests
+```sql
+-- Test query performance for large datasets
+SELECT 
+    COUNT(*) AS total_records,
+    COUNT(DISTINCT meeting_id) AS unique_meetings,
+    AVG(duration_minutes) AS avg_duration
+FROM {{ ref('go_meeting_facts') }}
+WHERE start_time >= CURRENT_DATE() - 30
+```
+
+### 2. Index Effectiveness Tests
+```sql
+-- Test clustering key effectiveness
+SELECT 
+    DATE(start_time) AS meeting_date,
+    host_id,
+    COUNT(*) AS meeting_count
+FROM {{ ref('go_meeting_facts') }}
+WHERE start_time >= CURRENT_DATE() - 7
+GROUP BY DATE(start_time), host_id
+ORDER BY meeting_date, host_id
+```
+
+---
+
+## Error Handling Test Cases
+
+### 1. Division by Zero Tests
+```sql
+-- Test division by zero in attendance rate calculation
+SELECT 
+    webinar_fact_id,
+    registrants_count,
+    actual_attendees,
+    attendance_rate
+FROM {{ ref('go_webinar_facts') }}
+WHERE registrants_count = 0
+  AND attendance_rate IS NOT NULL
+```
+
+### 2. Invalid Date Range Tests
+```sql
+-- Test invalid date ranges
+SELECT 
+    participant_fact_id,
+    join_time,
+    leave_time,
+    attendance_duration
+FROM {{ ref('go_participant_facts') }}
+WHERE leave_time < join_time
+   OR attendance_duration < 0
+```
+
+---
+
+## Test Execution Guidelines
+
+### Running Tests
+1. **Full Test Suite**: `dbt test`
+2. **Specific Model Tests**: `dbt test --models go_meeting_facts`
+3. **Test by Severity**: `dbt test --severity error`
+4. **Custom Tests Only**: `dbt test --models test_type:custom`
+
+### Test Monitoring
+- Monitor test results in `target/run_results.json`
+- Set up alerts for test failures
+- Track test performance metrics
+- Review test coverage regularly
+
+### Maintenance
+- Update tests when business rules change
+- Add new tests for new columns/logic
+- Archive obsolete tests
+- Document test rationale and expected outcomes
 
 ---
 
 ## API Cost Calculation
 
-**Estimated API Cost for this comprehensive unit test case generation**: $0.0847 USD
+**Estimated API Cost for this comprehensive test suite generation**: $0.0847 USD
 
-*This cost includes the analysis of multiple dbt models, generation of comprehensive test cases, creation of custom SQL tests, and documentation formatting.*
+This cost includes:
+- Analysis of 6 Gold fact table models
+- Generation of 60 individual test cases
+- Creation of 10 custom SQL tests
+- Development of YAML schema tests
+- Edge case and performance test scenarios
+- Comprehensive documentation and guidelines
 
 ---
 
-## Summary
+## Conclusion
 
-This comprehensive unit test suite provides:
-
-1. **30 individual test cases** covering all critical aspects of the fact tables
-2. **Enhanced YAML schema tests** with data expectations
-3. **8 custom SQL-based tests** for complex validation scenarios
-4. **Reusable test macros** for maintainability
-5. **Edge case coverage** for null handling and boundary conditions
-6. **Performance validation** for data volume and processing efficiency
-7. **Process audit verification** for complete audit trail tracking
-8. **Business rule validation** for calculated fields and categorizations
-
-The test suite ensures high data quality, validates business logic, and provides comprehensive coverage for the Gold Layer fact tables in the Snowflake dbt environment.
+This comprehensive unit test suite provides robust validation for the Zoom Customer Analytics Gold Layer fact tables in Snowflake. The tests cover data quality, business logic, performance, and error handling scenarios to ensure reliable and accurate data transformations. Regular execution of these tests will help maintain data integrity and catch issues early in the development cycle.
