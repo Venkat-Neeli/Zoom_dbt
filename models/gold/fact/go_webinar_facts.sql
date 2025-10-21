@@ -3,12 +3,12 @@
 ) }}
 
 SELECT 
-    'WF_' || 'SAMPLE_001' AS webinar_fact_id,
+    'WF_SAMPLE_001' AS webinar_fact_id,
     'WEBINAR_001' AS webinar_id,
     'HOST_001' AS host_id,
     'Sample Webinar Topic' AS webinar_topic,
     CURRENT_TIMESTAMP() AS start_time,
-    CURRENT_TIMESTAMP() + INTERVAL '90 minutes' AS end_time,
+    DATEADD('minute', 90, CURRENT_TIMESTAMP()) AS end_time,
     90 AS duration_minutes,
     100 AS registrants_count,
     75 AS actual_attendees,
@@ -21,4 +21,4 @@ SELECT
     CURRENT_DATE() AS load_date,
     CURRENT_DATE() AS update_date,
     'ZOOM_API' AS source_system
-WHERE FALSE  -- This creates the table structure without data
+WHERE 1=0
