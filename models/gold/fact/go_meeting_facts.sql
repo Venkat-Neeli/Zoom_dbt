@@ -3,12 +3,12 @@
 ) }}
 
 SELECT 
-    'MF_' || 'SAMPLE_001' AS meeting_fact_id,
+    'MF_SAMPLE_001' AS meeting_fact_id,
     'SAMPLE_MEETING_001' AS meeting_id,
     'HOST_001' AS host_id,
     'Sample Meeting Topic' AS meeting_topic,
     CURRENT_TIMESTAMP() AS start_time,
-    CURRENT_TIMESTAMP() + INTERVAL '60 minutes' AS end_time,
+    DATEADD('minute', 60, CURRENT_TIMESTAMP()) AS end_time,
     60 AS duration_minutes,
     5 AS participant_count,
     5 AS max_concurrent_participants,
@@ -25,4 +25,4 @@ SELECT
     CURRENT_DATE() AS load_date,
     CURRENT_DATE() AS update_date,
     'ZOOM_API' AS source_system
-WHERE FALSE  -- This creates the table structure without data
+WHERE 1=0
