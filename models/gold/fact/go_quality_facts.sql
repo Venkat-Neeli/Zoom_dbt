@@ -1,9 +1,7 @@
 {{ config(
     materialized='incremental',
     on_schema_change='sync_all_columns',
-    unique_key='quality_fact_id',
-    pre_hook="INSERT INTO {{ ref('go_process_audit') }} (execution_id, pipeline_name, start_time, status, source_system, target_system, process_type) SELECT UUID_STRING(), 'go_quality_facts', CURRENT_TIMESTAMP(), 'STARTED', 'SILVER', 'GOLD', 'FACT_LOAD' WHERE '{{ this.name }}' != 'go_process_audit'",
-    post_hook="INSERT INTO {{ ref('go_process_audit') }} (execution_id, pipeline_name, end_time, status, records_processed, source_system, target_system, process_type) SELECT UUID_STRING(), 'go_quality_facts', CURRENT_TIMESTAMP(), 'COMPLETED', (SELECT COUNT(*) FROM {{ this }}), 'SILVER', 'GOLD', 'FACT_LOAD' WHERE '{{ this.name }}' != 'go_process_audit'"
+    unique_key='quality_fact_id'
 ) }}
 
 WITH quality_base AS (
@@ -29,7 +27,7 @@ final_transform AS (
         CONCAT('QF_', qb.meeting_id, '_', qb.participant_id) AS quality_fact_id,
         qb.meeting_id,
         qb.participant_id,
-        CONCAT('DC_', qb.participant_id, '_', CURRENT_TIMESTAMP()::STRING) AS device_connection_id,
+        CONCAT('DC_', qb.participant_id, '_', DATE_PART('epoch', CURRENT_TIMESTAMP())::STRING) AS device_connection_id,
         ROUND(qb.data_quality_score * 0.8, 2) AS audio_quality_score,
         ROUND(qb.data_quality_score * 0.9, 2) AS video_quality_score,
         ROUND(qb.data_quality_score, 2) AS connection_stability_rating,
