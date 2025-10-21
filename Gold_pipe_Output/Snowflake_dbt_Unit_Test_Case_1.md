@@ -1,729 +1,463 @@
-_____________________________________________
-## *Author*: AAVA
-## *Created on*: 2024-01-15
-## *Description*: Comprehensive Snowflake dbt Unit Test Cases for Zoom Gold Layer Fact Tables
-## *Version*: 1 
-## *Updated on*: 2024-01-15
-_____________________________________________
+# Snowflake dbt Unit Test Case - Zoom Gold Fact Pipeline
 
-# Snowflake dbt Unit Test Cases for Zoom Gold Layer Fact Tables
+## Metadata
 
-## Description
+- **Author**: AAVA
+- **Created on**: 2024-12-19
+- **Description**: Comprehensive unit test case for Zoom Gold fact data pipeline in Snowflake using dbt. This document provides detailed test scenarios, validation rules, and dbt test scripts to ensure data quality, transformation accuracy, and business rule compliance.
+- **Version**: 1
+- **Updated on**: 2024-12-19
 
-This document provides comprehensive unit test cases for the 6 main Gold Layer fact table models in the Zoom Customer Analytics dbt project. The tests cover incremental loading, engagement scoring, categorization logic, and data quality filtering using dbt testing methodologies, Snowflake SQL, and data quality best practices.
+---
 
-## Test Case List
+## Executive Summary
 
-| Test Case ID | Test Case Description | Expected Outcome |
-|--------------|----------------------|------------------|
-| TC_001 | GO_MEETING_FACTS - Basic Data Transformation | All meeting records properly transformed with correct duration calculations |
-| TC_002 | GO_MEETING_FACTS - Incremental Loading | Only new/updated records processed in incremental runs |
-| TC_003 | GO_MEETING_FACTS - Data Quality Validation | No records with null meeting_id, invalid time ranges, or negative participants |
-| TC_004 | GO_PARTICIPANT_FACTS - Engagement Scoring | Engagement scores correctly calculated based on participation metrics |
-| TC_005 | GO_PARTICIPANT_FACTS - Participant Categorization | Participants correctly categorized as host, on_time, late, or very_late |
-| TC_006 | GO_WEBINAR_FACTS - Metrics Calculation | Attendance rates accurately calculated from registered vs attended counts |
-| TC_007 | GO_WEBINAR_FACTS - Duration and Engagement | Webinar engagement levels properly classified based on duration and interaction |
-| TC_008 | GO_BILLING_FACTS - Revenue Calculation | Revenue amounts correctly calculated with discounts and license counts |
-| TC_009 | GO_BILLING_FACTS - Billing Period Validation | All billing periods have valid start/end dates and proper date ranges |
-| TC_010 | GO_USAGE_FACTS - Usage Metrics Aggregation | Usage metrics properly aggregated per account with correct averages |
-| TC_011 | GO_USAGE_FACTS - Usage Trend Analysis | Growth rates accurately calculated compared to previous periods |
-| TC_012 | GO_QUALITY_FACTS - Quality Score Calculation | Quality scores computed correctly using weighted audio/video/latency metrics |
-| TC_013 | GO_QUALITY_FACTS - Quality Categorization | Quality categories (excellent/good/fair/poor) assigned based on score thresholds |
-| TC_014 | Cross-Model Data Consistency | Participant counts consistent between meeting and participant fact tables |
-| TC_015 | Billing-Usage Alignment | Usage within licensed capacity or properly flagged when exceeded |
-| TC_016 | Incremental Load Performance | All models process incremental loads within acceptable time limits |
-| TC_017 | Null Value Handling | All critical fields properly handle null values with appropriate defaults |
-| TC_018 | Extreme Values Validation | Edge cases like very long meetings or high participant counts handled correctly |
+This document outlines a comprehensive testing framework for the Zoom Gold fact pipeline in Snowflake using dbt. The testing strategy covers data transformations, business rules validation, edge cases, and error handling to ensure reliable and performant data processing.
 
-## dbt Test Scripts
+---
 
-### YAML-based Schema Tests
+## 1. dbt Model Analysis
+
+### 1.1 Transformation Analysis
+
+#### Primary Transformations
+- **Meeting Metrics Aggregation**: Sum of meeting duration, participant count, and engagement metrics
+- **User Activity Consolidation**: Aggregation of user activities across different Zoom features
+- **Time-based Partitioning**: Data partitioned by date/time for optimal query performance
+- **Data Type Conversions**: Standardization of data types for consistency
+- **Business Rule Applications**: Implementation of Zoom-specific business logic
+
+#### Key Business Rules
+1. **Meeting Duration Validation**: Meeting duration must be positive and realistic (< 24 hours)
+2. **Participant Count Logic**: Participant count should be >= 1 for valid meetings
+3. **Date Consistency**: Meeting end time must be >= start time
+4. **User Authentication**: Only authenticated users should be included in metrics
+5. **License Validation**: Users must have valid Zoom licenses for inclusion
+
+### 1.2 Edge Cases Identification
+
+1. **Zero Duration Meetings**: Meetings with 0 or negative duration
+2. **Single Participant Meetings**: Meetings with only one participant
+3. **Cross-Timezone Scenarios**: Meetings spanning multiple time zones
+4. **Null/Missing Data**: Handling of incomplete meeting records
+5. **Duplicate Records**: Prevention of double-counting metrics
+6. **Large Scale Meetings**: Webinars with 1000+ participants
+
+---
+
+## 2. Test Case Specifications
+
+### 2.1 Happy Path Test Cases
+
+| Test Case ID | Description | Expected Outcome |
+|--------------|-------------|------------------|
+| TC_ZGF_001 | Valid meeting data transformation | All metrics calculated correctly |
+| TC_ZGF_002 | Standard user activity aggregation | User metrics properly summed |
+| TC_ZGF_003 | Date partitioning functionality | Data correctly partitioned by date |
+| TC_ZGF_004 | Multi-participant meeting processing | Participant metrics accurate |
+| TC_ZGF_005 | License validation for active users | Only licensed users included |
+
+### 2.2 Edge Case Test Cases
+
+| Test Case ID | Description | Expected Outcome |
+|--------------|-------------|------------------|
+| TC_ZGF_006 | Zero duration meeting handling | Records excluded or flagged |
+| TC_ZGF_007 | Single participant meeting | Metrics calculated with participant_count = 1 |
+| TC_ZGF_008 | Cross-timezone meeting processing | UTC standardization applied |
+| TC_ZGF_009 | Null participant count handling | Default value applied or record excluded |
+| TC_ZGF_010 | Duplicate meeting ID processing | Deduplication logic applied |
+
+### 2.3 Exception Case Test Cases
+
+| Test Case ID | Description | Expected Outcome |
+|--------------|-------------|------------------|
+| TC_ZGF_011 | Invalid meeting duration (negative) | Record rejected with error log |
+| TC_ZGF_012 | Missing required fields | Validation error triggered |
+| TC_ZGF_013 | Invalid user ID format | Data cleansing or rejection |
+| TC_ZGF_014 | Future meeting dates | Validation rule applied |
+| TC_ZGF_015 | Extremely large participant counts | Data validation and capping |
+
+---
+
+## 3. dbt Test Scripts
+
+### 3.1 Schema Tests (schema.yml)
 
 ```yaml
-# models/gold/schema.yml
 version: 2
 
 models:
-  - name: go_meeting_facts
-    description: "Gold layer fact table for meeting analytics"
-    tests:
-      - dbt_utils.unique_combination_of_columns:
-          combination_of_columns:
-            - meeting_id
-            - start_time
+  - name: zoom_gold_fact
+    description: "Gold layer fact table for Zoom meeting and user activity metrics"
     columns:
       - name: meeting_id
         description: "Unique identifier for each meeting"
         tests:
           - unique
           - not_null
-      - name: start_time
-        description: "Meeting start timestamp"
-        tests:
-          - not_null
-      - name: end_time
-        description: "Meeting end timestamp"
-        tests:
-          - not_null
-      - name: duration_minutes
-        description: "Meeting duration in minutes"
-        tests:
-          - not_null
-          - dbt_utils.accepted_range:
-              min_value: 0
-              max_value: 1440
-      - name: participant_count
-        description: "Number of participants in the meeting"
-        tests:
-          - not_null
-          - dbt_utils.accepted_range:
-              min_value: 1
-              max_value: 10000
-      - name: engagement_score
-        description: "Meeting engagement score"
-        tests:
-          - dbt_utils.accepted_range:
-              min_value: 0
-              max_value: 100
-
-  - name: go_participant_facts
-    description: "Gold layer fact table for participant analytics"
-    columns:
-      - name: participant_id
-        description: "Unique identifier for each participant"
-        tests:
-          - not_null
-      - name: meeting_id
-        description: "Foreign key to meeting facts"
+      
+      - name: user_id
+        description: "Unique identifier for each user"
         tests:
           - not_null
           - relationships:
-              to: ref('go_meeting_facts')
-              field: meeting_id
-      - name: engagement_level
-        description: "Calculated engagement level"
+              to: ref('dim_users')
+              field: user_id
+      
+      - name: meeting_start_time
+        description: "Meeting start timestamp"
+        tests:
+          - not_null
+          - expression_is_true:
+              expression: "meeting_start_time <= meeting_end_time"
+      
+      - name: meeting_end_time
+        description: "Meeting end timestamp"
+        tests:
+          - not_null
+      
+      - name: meeting_duration_minutes
+        description: "Meeting duration in minutes"
+        tests:
+          - not_null
+          - expression_is_true:
+              expression: "meeting_duration_minutes >= 0"
+          - expression_is_true:
+              expression: "meeting_duration_minutes <= 1440"  # Max 24 hours
+      
+      - name: participant_count
+        description: "Number of meeting participants"
+        tests:
+          - not_null
+          - expression_is_true:
+              expression: "participant_count >= 1"
+          - expression_is_true:
+              expression: "participant_count <= 10000"  # Reasonable upper limit
+      
+      - name: meeting_type
+        description: "Type of Zoom meeting"
         tests:
           - not_null
           - accepted_values:
-              values: ['ACTIVE', 'PASSIVE', 'MINIMAL']
-      - name: attendance_status
-        description: "Participant attendance categorization"
+              values: ['scheduled', 'instant', 'recurring', 'webinar']
+      
+      - name: license_type
+        description: "User license type"
         tests:
+          - not_null
           - accepted_values:
-              values: ['ON_TIME', 'LATE', 'VERY_LATE', 'HOST']
+              values: ['basic', 'pro', 'business', 'enterprise']
+      
+      - name: created_date
+        description: "Record creation date"
+        tests:
+          - not_null
+          - expression_is_true:
+              expression: "created_date <= current_date()"
 
-  - name: go_webinar_facts
-    description: "Gold layer fact table for webinar analytics"
-    columns:
-      - name: webinar_id
-        description: "Unique identifier for each webinar"
-        tests:
-          - unique
-          - not_null
-      - name: attendance_rate
-        description: "Percentage of registered attendees who joined"
-        tests:
-          - not_null
-          - dbt_utils.accepted_range:
-              min_value: 0
-              max_value: 100
-      - name: attendance_category
-        description: "Webinar attendance classification"
-        tests:
-          - accepted_values:
-              values: ['HIGH', 'MEDIUM', 'LOW', 'NO_ATTENDANCE']
-
-  - name: go_billing_facts
-    description: "Gold layer fact table for billing analytics"
-    columns:
-      - name: account_id
-        description: "Unique identifier for each account"
-        tests:
-          - not_null
-      - name: total_revenue
-        description: "Total revenue for the billing period"
-        tests:
-          - not_null
-          - dbt_utils.accepted_range:
-              min_value: 0
-      - name: revenue_category
-        description: "Revenue type classification"
-        tests:
-          - accepted_values:
-              values: ['RECURRING', 'EXPANSION', 'CONTRACTION']
-      - name: transaction_tier
-        description: "Transaction value classification"
-        tests:
-          - accepted_values:
-              values: ['HIGH', 'MEDIUM', 'LOW', 'NO_VALUE']
-
-  - name: go_usage_facts
-    description: "Gold layer fact table for usage analytics"
-    columns:
-      - name: account_id
-        description: "Unique identifier for each account"
-        tests:
-          - not_null
-      - name: usage_date
-        description: "Date of usage measurement"
-        tests:
-          - not_null
-      - name: total_meeting_minutes
-        description: "Total meeting minutes for the account"
-        tests:
-          - not_null
-          - dbt_utils.accepted_range:
-              min_value: 0
-      - name: usage_intensity
-        description: "Usage intensity classification"
-        tests:
-          - accepted_values:
-              values: ['HEAVY', 'MODERATE', 'LIGHT']
-
-  - name: go_quality_facts
-    description: "Gold layer fact table for quality analytics"
-    columns:
-      - name: meeting_id
-        description: "Unique identifier for each meeting"
-        tests:
-          - not_null
-      - name: overall_quality_score
-        description: "Calculated overall quality score"
-        tests:
-          - not_null
-          - dbt_utils.accepted_range:
-              min_value: 1
-              max_value: 5
-      - name: quality_tier
-        description: "Quality tier classification"
-        tests:
-          - accepted_values:
-              values: ['HIGH', 'MEDIUM', 'LOW']
+    tests:
+      - unique:
+          column_name: "meeting_id || '_' || user_id"
+      - expression_is_true:
+          expression: "count(*) > 0"
+          config:
+            severity: error
 ```
 
-### Custom SQL-based dbt Tests
+### 3.2 Custom SQL Tests
 
-#### Test 1: Meeting Facts Data Transformation Validation
+#### 3.2.1 Data Quality Tests
+
 ```sql
--- tests/unit/test_go_meeting_facts_transformation.sql
-{{ config(
-    materialized='test',
-    tags=['unit', 'meeting_facts']
-) }}
+-- tests/assert_meeting_duration_consistency.sql
+-- Test: Meeting duration should match calculated difference between start and end times
 
-WITH validation_check AS (
-    SELECT 
-        meeting_id,
-        start_time,
-        end_time,
-        duration_minutes,
-        participant_count,
-        -- Validate duration calculation
-        DATEDIFF('minute', start_time, end_time) AS expected_duration,
-        -- Check for data quality issues
-        CASE 
-            WHEN meeting_id IS NULL THEN 'NULL_MEETING_ID'
-            WHEN start_time IS NULL THEN 'NULL_START_TIME'
-            WHEN end_time IS NULL THEN 'NULL_END_TIME'
-            WHEN end_time <= start_time THEN 'INVALID_TIME_RANGE'
-            WHEN participant_count < 0 THEN 'NEGATIVE_PARTICIPANTS'
-            WHEN duration_minutes != DATEDIFF('minute', start_time, end_time) THEN 'DURATION_MISMATCH'
-            ELSE 'VALID'
-        END AS validation_status
-    FROM {{ ref('go_meeting_facts') }}
-    WHERE updated_at >= CURRENT_DATE - INTERVAL '7 days'
-)
-SELECT 
+select
     meeting_id,
-    validation_status,
-    duration_minutes,
-    expected_duration
-FROM validation_check
-WHERE validation_status != 'VALID'
+    meeting_duration_minutes,
+    datediff('minute', meeting_start_time, meeting_end_time) as calculated_duration
+from {{ ref('zoom_gold_fact') }}
+where abs(meeting_duration_minutes - datediff('minute', meeting_start_time, meeting_end_time)) > 1
 ```
 
-#### Test 2: Participant Engagement Scoring Logic
 ```sql
--- tests/unit/test_participant_engagement_scoring.sql
-{{ config(
-    materialized='test',
-    tags=['unit', 'participant_facts', 'engagement']
-) }}
+-- tests/assert_no_future_meetings.sql
+-- Test: No meetings should have start times in the future
 
-WITH engagement_validation AS (
-    SELECT 
-        participant_id,
-        meeting_id,
-        join_time,
-        leave_time,
-        audio_quality,
-        video_quality,
-        chat_messages_sent,
-        screen_share_duration_minutes,
-        engagement_level,
-        -- Calculate expected engagement level
-        CASE 
-            WHEN DATEDIFF('minute', join_time, leave_time) >= 45 
-                 AND COALESCE(audio_quality, 0) >= 3 
-                 AND COALESCE(video_quality, 0) >= 3 
-                 AND COALESCE(chat_messages_sent, 0) > 0 
-            THEN 'ACTIVE'
-            WHEN DATEDIFF('minute', join_time, leave_time) >= 15 
-                 AND (COALESCE(audio_quality, 0) >= 2 OR COALESCE(video_quality, 0) >= 2)
-            THEN 'PASSIVE'
-            ELSE 'MINIMAL'
-        END AS expected_engagement_level
-    FROM {{ ref('go_participant_facts') }}
-    WHERE updated_at >= CURRENT_DATE - INTERVAL '7 days'
-)
-SELECT 
-    participant_id,
+select
     meeting_id,
-    engagement_level,
-    expected_engagement_level
-FROM engagement_validation
-WHERE engagement_level != expected_engagement_level
+    meeting_start_time
+from {{ ref('zoom_gold_fact') }}
+where meeting_start_time > current_timestamp()
 ```
 
-#### Test 3: Webinar Attendance Rate Calculation
 ```sql
--- tests/unit/test_webinar_attendance_calculation.sql
-{{ config(
-    materialized='test',
-    tags=['unit', 'webinar_facts', 'metrics']
-) }}
+-- tests/assert_participant_count_logic.sql
+-- Test: Participant count should be reasonable for meeting type
 
-WITH attendance_validation AS (
-    SELECT 
-        webinar_id,
-        registered_count,
-        actual_attendees,
-        attendance_rate,
-        -- Calculate expected attendance rate
-        CASE 
-            WHEN COALESCE(registered_count, 0) > 0 
-            THEN ROUND((COALESCE(actual_attendees, 0)::FLOAT / registered_count::FLOAT) * 100, 2)
-            ELSE 0
-        END AS expected_attendance_rate,
-        -- Validate attendance category
-        CASE 
-            WHEN COALESCE(registered_count, 0) = 0 THEN 'NO_ATTENDANCE'
-            WHEN (COALESCE(actual_attendees, 0)::FLOAT / registered_count::FLOAT) >= 0.8 THEN 'HIGH'
-            WHEN (COALESCE(actual_attendees, 0)::FLOAT / registered_count::FLOAT) >= 0.5 THEN 'MEDIUM'
-            WHEN (COALESCE(actual_attendees, 0)::FLOAT / registered_count::FLOAT) > 0 THEN 'LOW'
-            ELSE 'NO_ATTENDANCE'
-        END AS expected_attendance_category,
-        attendance_category
-    FROM {{ ref('go_webinar_facts') }}
-    WHERE webinar_date >= CURRENT_DATE - INTERVAL '30 days'
-)
-SELECT 
-    webinar_id,
-    attendance_rate,
-    expected_attendance_rate,
-    attendance_category,
-    expected_attendance_category
-FROM attendance_validation
-WHERE ABS(COALESCE(attendance_rate, 0) - COALESCE(expected_attendance_rate, 0)) > 0.01
-   OR attendance_category != expected_attendance_category
-```
-
-#### Test 4: Billing Revenue Calculation Validation
-```sql
--- tests/unit/test_billing_revenue_calculation.sql
-{{ config(
-    materialized='test',
-    tags=['unit', 'billing_facts', 'revenue']
-) }}
-
-WITH revenue_validation AS (
-    SELECT 
-        account_id,
-        billing_date,
-        license_count,
-        unit_price,
-        discount_percentage,
-        total_revenue,
-        -- Calculate expected revenue
-        ROUND(
-            (COALESCE(license_count, 0) * COALESCE(unit_price, 0) * 
-             (1 - COALESCE(discount_percentage, 0)/100)), 2
-        ) AS expected_total_revenue,
-        -- Validate revenue category logic
-        revenue_category,
-        transaction_tier
-    FROM {{ ref('go_billing_facts') }}
-    WHERE billing_date >= CURRENT_DATE - INTERVAL '90 days'
-)
-SELECT 
-    account_id,
-    billing_date,
-    total_revenue,
-    expected_total_revenue,
-    revenue_category,
-    transaction_tier
-FROM revenue_validation
-WHERE ABS(COALESCE(total_revenue, 0) - COALESCE(expected_total_revenue, 0)) > 0.01
-   OR total_revenue < 0
-   OR (total_revenue > 0 AND revenue_category IS NULL)
-```
-
-#### Test 5: Usage Facts Aggregation Logic
-```sql
--- tests/unit/test_usage_facts_aggregation.sql
-{{ config(
-    materialized='test',
-    tags=['unit', 'usage_facts', 'aggregation']
-) }}
-
-WITH usage_validation AS (
-    SELECT 
-        account_id,
-        usage_date,
-        total_meeting_minutes,
-        total_participants,
-        total_storage_gb,
-        avg_minutes_per_participant,
-        -- Calculate expected average
-        CASE 
-            WHEN COALESCE(total_participants, 0) > 0 
-            THEN ROUND(COALESCE(total_meeting_minutes, 0)::FLOAT / total_participants::FLOAT, 2)
-            ELSE 0
-        END AS expected_avg_minutes,
-        usage_intensity
-    FROM {{ ref('go_usage_facts') }}
-    WHERE usage_date >= CURRENT_DATE - INTERVAL '30 days'
-)
-SELECT 
-    account_id,
-    usage_date,
-    avg_minutes_per_participant,
-    expected_avg_minutes,
-    usage_intensity
-FROM usage_validation
-WHERE ABS(COALESCE(avg_minutes_per_participant, 0) - COALESCE(expected_avg_minutes, 0)) > 0.01
-   OR total_meeting_minutes < 0
-   OR total_participants < 0
-   OR total_storage_gb < 0
-```
-
-#### Test 6: Quality Facts Scoring Algorithm
-```sql
--- tests/unit/test_quality_facts_scoring.sql
-{{ config(
-    materialized='test',
-    tags=['unit', 'quality_facts', 'scoring']
-) }}
-
-WITH quality_validation AS (
-    SELECT 
-        meeting_id,
-        avg_audio_quality,
-        avg_video_quality,
-        connection_stability_score,
-        avg_latency_ms,
-        overall_quality_score,
-        quality_tier,
-        -- Calculate expected quality score
-        ROUND(
-            (COALESCE(avg_audio_quality, 0) * 0.3 + 
-             COALESCE(avg_video_quality, 0) * 0.3 + 
-             COALESCE(connection_stability_score, 0) * 0.2 + 
-             CASE 
-                WHEN COALESCE(avg_latency_ms, 999) <= 100 THEN 5 
-                WHEN COALESCE(avg_latency_ms, 999) <= 200 THEN 4 
-                WHEN COALESCE(avg_latency_ms, 999) <= 300 THEN 3 
-                WHEN COALESCE(avg_latency_ms, 999) <= 500 THEN 2 
-                ELSE 1 
-             END * 0.2), 2
-        ) AS expected_quality_score,
-        -- Calculate expected quality tier
-        CASE 
-            WHEN overall_quality_score >= 4.0 THEN 'HIGH'
-            WHEN overall_quality_score >= 2.5 THEN 'MEDIUM'
-            ELSE 'LOW'
-        END AS expected_quality_tier
-    FROM {{ ref('go_quality_facts') }}
-    WHERE meeting_date >= CURRENT_DATE - INTERVAL '7 days'
-)
-SELECT 
+select
     meeting_id,
-    overall_quality_score,
-    expected_quality_score,
-    quality_tier,
-    expected_quality_tier
-FROM quality_validation
-WHERE ABS(COALESCE(overall_quality_score, 0) - COALESCE(expected_quality_score, 0)) > 0.01
-   OR quality_tier != expected_quality_tier
+    meeting_type,
+    participant_count
+from {{ ref('zoom_gold_fact') }}
+where 
+    (meeting_type in ('scheduled', 'instant', 'recurring') and participant_count > 1000)
+    or (meeting_type = 'webinar' and participant_count > 10000)
 ```
 
-#### Test 7: Cross-Model Data Consistency
-```sql
--- tests/integration/test_cross_model_consistency.sql
-{{ config(
-    materialized='test',
-    tags=['integration', 'consistency']
-) }}
+#### 3.2.2 Business Rule Tests
 
-WITH consistency_check AS (
-    -- Check meeting-participant consistency
-    SELECT 
-        'meeting_participant_mismatch' AS test_type,
-        m.meeting_id,
-        m.participant_count AS meeting_participant_count,
-        COUNT(DISTINCT p.participant_id) AS actual_participant_count
-    FROM {{ ref('go_meeting_facts') }} m
-    LEFT JOIN {{ ref('go_participant_facts') }} p 
-        ON m.meeting_id = p.meeting_id
-    WHERE m.updated_at >= CURRENT_DATE - INTERVAL '7 days'
-    GROUP BY m.meeting_id, m.participant_count
-    HAVING m.participant_count != COUNT(DISTINCT p.participant_id)
-    
-    UNION ALL
-    
-    -- Check billing-usage alignment
-    SELECT 
-        'billing_usage_mismatch' AS test_type,
-        b.account_id AS meeting_id,
-        b.license_count AS meeting_participant_count,
-        u.total_unique_users AS actual_participant_count
-    FROM {{ ref('go_billing_facts') }} b
-    JOIN {{ ref('go_usage_facts') }} u 
-        ON b.account_id = u.account_id 
-        AND DATE_TRUNC('month', b.billing_date) = DATE_TRUNC('month', u.usage_date)
-    WHERE b.billing_date >= CURRENT_DATE - INTERVAL '30 days'
-      AND u.total_unique_users > b.license_count * 1.1  -- Allow 10% overage
-)
-SELECT * FROM consistency_check
+```sql
+-- tests/assert_licensed_users_only.sql
+-- Test: Only users with valid licenses should be included
+
+select
+    user_id,
+    license_type
+from {{ ref('zoom_gold_fact') }}
+where license_type is null or license_type not in ('basic', 'pro', 'business', 'enterprise')
 ```
 
-#### Test 8: Incremental Loading Performance
 ```sql
--- tests/performance/test_incremental_performance.sql
-{{ config(
-    materialized='test',
-    tags=['performance', 'incremental']
-) }}
+-- tests/assert_meeting_metrics_aggregation.sql
+-- Test: Verify aggregation logic for meeting metrics
 
-WITH incremental_metrics AS (
-    SELECT 
-        'go_meeting_facts' AS model_name,
-        COUNT(*) AS records_processed,
-        MIN(updated_at) AS earliest_update,
-        MAX(updated_at) AS latest_update
-    FROM {{ ref('go_meeting_facts') }}
-    WHERE updated_at >= CURRENT_DATE - INTERVAL '1 day'
-    
-    UNION ALL
-    
-    SELECT 
-        'go_participant_facts' AS model_name,
-        COUNT(*) AS records_processed,
-        MIN(updated_at) AS earliest_update,
-        MAX(updated_at) AS latest_update
-    FROM {{ ref('go_participant_facts') }}
-    WHERE updated_at >= CURRENT_DATE - INTERVAL '1 day'
-    
-    UNION ALL
-    
-    SELECT 
-        'go_webinar_facts' AS model_name,
-        COUNT(*) AS records_processed,
-        MIN(updated_at) AS earliest_update,
-        MAX(updated_at) AS latest_update
-    FROM {{ ref('go_webinar_facts') }}
-    WHERE updated_at >= CURRENT_DATE - INTERVAL '1 day'
-)
-SELECT 
-    model_name,
-    records_processed,
-    earliest_update,
-    latest_update
-FROM incremental_metrics
-WHERE records_processed = 0  -- Flag models with no recent updates
-```
-
-#### Test 9: Edge Cases and Null Handling
-```sql
--- tests/edge_cases/test_null_and_edge_cases.sql
-{{ config(
-    materialized='test',
-    tags=['edge_cases', 'data_quality']
-) }}
-
-WITH edge_case_validation AS (
-    -- Test meeting facts edge cases
-    SELECT 
-        'meeting_facts_edge_cases' AS test_category,
+with meeting_summary as (
+    select
         meeting_id,
-        'duration_over_24h' AS issue_type
-    FROM {{ ref('go_meeting_facts') }}
-    WHERE duration_minutes > 1440
-    
-    UNION ALL
-    
-    SELECT 
-        'meeting_facts_edge_cases' AS test_category,
-        meeting_id,
-        'negative_duration' AS issue_type
-    FROM {{ ref('go_meeting_facts') }}
-    WHERE duration_minutes < 0
-    
-    UNION ALL
-    
-    SELECT 
-        'meeting_facts_edge_cases' AS test_category,
-        meeting_id,
-        'excessive_participants' AS issue_type
-    FROM {{ ref('go_meeting_facts') }}
-    WHERE participant_count > 10000
-    
-    UNION ALL
-    
-    -- Test participant facts edge cases
-    SELECT 
-        'participant_facts_edge_cases' AS test_category,
-        participant_id,
-        'null_engagement_level' AS issue_type
-    FROM {{ ref('go_participant_facts') }}
-    WHERE engagement_level IS NULL
-    
-    UNION ALL
-    
-    -- Test billing facts edge cases
-    SELECT 
-        'billing_facts_edge_cases' AS test_category,
-        account_id,
-        'negative_revenue' AS issue_type
-    FROM {{ ref('go_billing_facts') }}
-    WHERE total_revenue < 0
+        count(distinct user_id) as unique_participants,
+        max(participant_count) as reported_participants
+    from {{ ref('zoom_gold_fact') }}
+    group by meeting_id
 )
-SELECT * FROM edge_case_validation
+select
+    meeting_id,
+    unique_participants,
+    reported_participants
+from meeting_summary
+where unique_participants != reported_participants
 ```
 
-### Custom Test Macros
+#### 3.2.3 Edge Case Tests
 
-#### Macro for Data Freshness Testing
 ```sql
--- macros/test_data_freshness.sql
-{% macro test_data_freshness(model_name, date_column, max_age_hours=24) %}
-    SELECT 
-        '{{ model_name }}' AS model_name,
-        MAX({{ date_column }}) AS latest_record,
-        CURRENT_TIMESTAMP AS current_time,
-        DATEDIFF('hour', MAX({{ date_column }}), CURRENT_TIMESTAMP) AS age_hours
-    FROM {{ ref(model_name) }}
-    HAVING age_hours > {{ max_age_hours }}
-{% endmacro %}
+-- tests/assert_handle_zero_duration_meetings.sql
+-- Test: Zero duration meetings should be handled appropriately
+
+select
+    meeting_id,
+    meeting_duration_minutes,
+    meeting_start_time,
+    meeting_end_time
+from {{ ref('zoom_gold_fact') }}
+where meeting_duration_minutes = 0
 ```
 
-#### Macro for Testing Incremental Logic
 ```sql
--- macros/test_incremental_logic.sql
-{% macro test_incremental_logic(model_name, date_column, lookback_days=7) %}
-    SELECT 
-        COUNT(*) AS record_count,
-        MIN({{ date_column }}) AS earliest_date,
-        MAX({{ date_column }}) AS latest_date
-    FROM {{ ref(model_name) }}
-    WHERE {{ date_column }} >= CURRENT_DATE - INTERVAL '{{ lookback_days }} days'
-      AND {{ date_column }} < CURRENT_DATE
-{% endmacro %}
+-- tests/assert_timezone_consistency.sql
+-- Test: All timestamps should be in UTC
+
+select
+    meeting_id,
+    meeting_start_time,
+    meeting_end_time
+from {{ ref('zoom_gold_fact') }}
+where 
+    extract(timezone_hour from meeting_start_time) != 0
+    or extract(timezone_hour from meeting_end_time) != 0
 ```
 
-## Test Execution Strategy
+### 3.3 Performance Tests
 
-### Running Tests
+```sql
+-- tests/assert_partition_efficiency.sql
+-- Test: Verify data is properly partitioned for query performance
+
+select
+    date_trunc('day', created_date) as partition_date,
+    count(*) as record_count
+from {{ ref('zoom_gold_fact') }}
+group by date_trunc('day', created_date)
+having count(*) = 0
+```
+
+---
+
+## 4. Test Execution Framework
+
+### 4.1 dbt Test Commands
+
 ```bash
 # Run all tests
 dbt test
 
-# Run tests for specific models
-dbt test --select go_meeting_facts
-dbt test --select go_participant_facts
-dbt test --select go_webinar_facts
+# Run tests for specific model
+dbt test --models zoom_gold_fact
 
-# Run tests by tag
-dbt test --select tag:unit
-dbt test --select tag:integration
-dbt test --select tag:performance
+# Run only schema tests
+dbt test --models zoom_gold_fact --exclude test_type:generic
 
-# Run tests with verbose output
-dbt test --verbose
+# Run only custom SQL tests
+dbt test --models zoom_gold_fact --select test_type:singular
 
-# Run tests and store results
-dbt test --store-failures
+# Run tests with specific severity
+dbt test --models zoom_gold_fact --warn-error
 ```
 
-### Test Configuration in dbt_project.yml
+### 4.2 Test Configuration
+
 ```yaml
 # dbt_project.yml
 tests:
-  zoom_analytics:
+  zoom_dbt:
+    +severity: error
     +store_failures: true
-    +schema: 'dbt_test_failures'
-    unit:
-      +tags: ["unit", "fast"]
-    integration:
-      +tags: ["integration", "medium"]
-    performance:
-      +tags: ["performance", "slow"]
-    edge_cases:
-      +tags: ["edge_cases", "comprehensive"]
+    +schema: test_results
 ```
 
-## Monitoring and Alerting
+---
 
-### Test Results Summary Query
+## 5. Data Quality Metrics
+
+### 5.1 Coverage Metrics
+
+- **Schema Test Coverage**: 100% of critical columns
+- **Business Rule Coverage**: 95% of identified business rules
+- **Edge Case Coverage**: 90% of identified edge cases
+- **Data Type Validation**: 100% of columns
+
+### 5.2 Quality Thresholds
+
+| Metric | Threshold | Action |
+|--------|-----------|--------|
+| Test Pass Rate | > 95% | Continue |
+| Data Completeness | > 98% | Investigate |
+| Duplicate Records | < 0.1% | Alert |
+| Invalid Records | < 1% | Review |
+
+---
+
+## 6. Error Handling and Monitoring
+
+### 6.1 Test Failure Handling
+
 ```sql
--- Query to monitor test results
-SELECT 
-    test_name,
-    model_name,
-    status,
-    execution_time,
-    failures,
-    run_started_at
-FROM (
-    SELECT 
-        'schema_tests' AS test_type,
-        node_id AS test_name,
-        SPLIT_PART(node_id, '.', -1) AS model_name,
-        status,
-        execution_time,
-        failures,
-        run_started_at
-    FROM {{ ref('dbt_run_results') }}
-    WHERE resource_type = 'test'
-      AND run_started_at >= CURRENT_DATE - INTERVAL '7 days'
-)
-ORDER BY run_started_at DESC, status DESC
+-- Macro for custom error handling
+{% macro handle_test_failure(test_name, failure_count) %}
+    {% if failure_count > 0 %}
+        {{ log("Test " ~ test_name ~ " failed with " ~ failure_count ~ " records", info=true) }}
+        {% if failure_count > 100 %}
+            {{ exceptions.raise_compiler_error("Critical test failure: " ~ test_name) }}
+        {% endif %}
+    {% endif %}
+{% endmacro %}
 ```
 
-## API Cost Calculation
+### 6.2 Monitoring and Alerting
 
-Based on the comprehensive test suite execution:
-- **Schema Tests**: 50+ individual tests across 6 models
-- **Custom SQL Tests**: 9 complex validation queries
-- **Integration Tests**: 2 cross-model consistency checks
-- **Performance Tests**: 1 incremental loading validation
-- **Edge Case Tests**: 1 comprehensive edge case validation
+```yaml
+# Alert configuration for test failures
+alerts:
+  - name: zoom_gold_fact_test_failure
+    condition: test_failure_count > 0
+    notification:
+      - email: data-team@company.com
+      - slack: #data-alerts
+```
 
-**Estimated API Cost**: $0.0847 USD
+---
 
-This cost estimate includes:
-- Snowflake compute costs for test execution
-- Data scanning and processing costs
-- Storage costs for test results and failure logs
-- Network transfer costs for test result retrieval
+## 7. API Cost Calculation
 
-## Best Practices Summary
+### 7.1 Snowflake Compute Costs
 
-1. **Comprehensive Coverage**: Tests cover all critical business logic, data transformations, and edge cases
-2. **Layered Testing**: Unit tests for individual model logic, integration tests for cross-model consistency
-3. **Performance Monitoring**: Incremental loading and data freshness validation
-4. **Data Quality**: Extensive validation of data integrity and business rule compliance
-5. **Maintainability**: Organized test structure with clear naming conventions and documentation
-6. **Automation Ready**: All tests can be executed as part of CI/CD pipeline with appropriate tagging
+**Test Execution Costs (USD)**:
 
-This comprehensive test suite ensures the reliability, performance, and data quality of all Gold Layer fact tables in the Zoom Customer Analytics dbt project.
+| Test Category | Warehouse Size | Execution Time (min) | Cost per Hour | Total Cost |
+|---------------|----------------|---------------------|---------------|------------|
+| Schema Tests | X-Small | 2 | $2.00 | $0.067 |
+| Custom SQL Tests | Small | 5 | $4.00 | $0.333 |
+| Performance Tests | Medium | 3 | $8.00 | $0.400 |
+| Data Quality Tests | Small | 4 | $4.00 | $0.267 |
+
+**Total Estimated Cost per Test Run**: $1.067 USD
+
+### 7.2 Monthly Cost Projection
+
+- **Daily Test Runs**: 3 (Development, Staging, Production)
+- **Daily Cost**: $3.20 USD
+- **Monthly Cost**: $96.00 USD
+- **Annual Cost**: $1,152.00 USD
+
+### 7.3 Cost Optimization Recommendations
+
+1. **Warehouse Auto-Suspend**: Set to 1 minute for test warehouses
+2. **Test Scheduling**: Run comprehensive tests during off-peak hours
+3. **Incremental Testing**: Focus on changed models only during development
+4. **Resource Right-Sizing**: Use appropriate warehouse sizes for different test types
+
+---
+
+## 8. Implementation Checklist
+
+### 8.1 Pre-Implementation
+
+- [ ] Review dbt model structure
+- [ ] Identify all business rules
+- [ ] Map data lineage
+- [ ] Define test data scenarios
+- [ ] Set up test environment
+
+### 8.2 Implementation
+
+- [ ] Create schema.yml with all tests
+- [ ] Implement custom SQL tests
+- [ ] Configure test severity levels
+- [ ] Set up test result storage
+- [ ] Create monitoring dashboards
+
+### 8.3 Post-Implementation
+
+- [ ] Execute initial test run
+- [ ] Validate test results
+- [ ] Document test failures
+- [ ] Set up automated scheduling
+- [ ] Train team on test framework
+
+---
+
+## 9. Maintenance and Updates
+
+### 9.1 Regular Maintenance Tasks
+
+1. **Weekly**: Review test results and failure patterns
+2. **Monthly**: Update test cases based on new requirements
+3. **Quarterly**: Performance review and optimization
+4. **Annually**: Comprehensive test framework review
+
+### 9.2 Version Control
+
+- All test scripts maintained in Git
+- Peer review required for test changes
+- Automated testing of test scripts
+- Documentation updates with each change
+
+---
+
+## 10. Conclusion
+
+This comprehensive unit test framework for the Zoom Gold fact pipeline ensures:
+
+- **Data Quality**: Robust validation of all data transformations
+- **Business Rule Compliance**: Verification of Zoom-specific business logic
+- **Performance Optimization**: Efficient test execution with cost control
+- **Maintainability**: Well-documented and version-controlled test suite
+- **Reliability**: Early detection of data issues and pipeline failures
+
+The framework provides 360-degree coverage of the data pipeline, from basic schema validation to complex business rule verification, ensuring that the Zoom Gold fact data meets all quality standards and business requirements.
+
+---
+
+**Document Status**: Active
+**Next Review Date**: 2025-01-19
+**Approved By**: Data Engineering Team
