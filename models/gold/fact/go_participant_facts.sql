@@ -3,12 +3,12 @@
 ) }}
 
 SELECT 
-    'PF_' || 'SAMPLE_001' AS participant_fact_id,
+    'PF_SAMPLE_001' AS participant_fact_id,
     'SAMPLE_MEETING_001' AS meeting_id,
     'PARTICIPANT_001' AS participant_id,
     'USER_001' AS user_id,
     CURRENT_TIMESTAMP() AS join_time,
-    CURRENT_TIMESTAMP() + INTERVAL '45 minutes' AS leave_time,
+    DATEADD('minute', 45, CURRENT_TIMESTAMP()) AS leave_time,
     45 AS attendance_duration,
     'Participant' AS participant_role,
     'Computer Audio' AS audio_connection_type,
@@ -22,4 +22,4 @@ SELECT
     CURRENT_DATE() AS load_date,
     CURRENT_DATE() AS update_date,
     'ZOOM_API' AS source_system
-WHERE FALSE  -- This creates the table structure without data
+WHERE 1=0
