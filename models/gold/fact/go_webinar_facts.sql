@@ -1,9 +1,7 @@
 {{ config(
     materialized='incremental',
     on_schema_change='sync_all_columns',
-    unique_key='webinar_fact_id',
-    pre_hook="INSERT INTO {{ ref('go_process_audit') }} (execution_id, pipeline_name, start_time, status, source_system, target_system, process_type) SELECT UUID_STRING(), 'go_webinar_facts', CURRENT_TIMESTAMP(), 'STARTED', 'SILVER', 'GOLD', 'FACT_LOAD' WHERE '{{ this.name }}' != 'go_process_audit'",
-    post_hook="INSERT INTO {{ ref('go_process_audit') }} (execution_id, pipeline_name, end_time, status, records_processed, source_system, target_system, process_type) SELECT UUID_STRING(), 'go_webinar_facts', CURRENT_TIMESTAMP(), 'COMPLETED', (SELECT COUNT(*) FROM {{ this }}), 'SILVER', 'GOLD', 'FACT_LOAD' WHERE '{{ this.name }}' != 'go_process_audit'"
+    unique_key='webinar_fact_id'
 ) }}
 
 WITH webinar_base AS (
@@ -45,7 +43,7 @@ webinar_features AS (
 
 final_transform AS (
     SELECT 
-        CONCAT('WF_', wb.webinar_id, '_', CURRENT_TIMESTAMP()::STRING) AS webinar_fact_id,
+        CONCAT('WF_', wb.webinar_id, '_', DATE_PART('epoch', CURRENT_TIMESTAMP())::STRING) AS webinar_fact_id,
         wb.webinar_id,
         wb.host_id,
         TRIM(COALESCE(wb.webinar_topic, 'No Topic Specified')) AS webinar_topic,
