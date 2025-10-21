@@ -3,10 +3,10 @@
 ) }}
 
 SELECT 
-    'QF_' || 'SAMPLE_001' AS quality_fact_id,
+    'QF_SAMPLE_001' AS quality_fact_id,
     'MEETING_001' AS meeting_id,
     'PARTICIPANT_001' AS participant_id,
-    'DC_' || 'SAMPLE_001' AS device_connection_id,
+    'DC_SAMPLE_001' AS device_connection_id,
     8.5 AS audio_quality_score,
     9.0 AS video_quality_score,
     8.8 AS connection_stability_rating,
@@ -18,4 +18,4 @@ SELECT
     CURRENT_DATE() AS load_date,
     CURRENT_DATE() AS update_date,
     'ZOOM_API' AS source_system
-WHERE FALSE  -- This creates the table structure without data
+WHERE 1=0
