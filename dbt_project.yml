@@ -21,7 +21,7 @@ models:
     gold:
       +materialized: table
       +cluster_by: ["load_date"]
-      dimensional:
+      dimension:
         +materialized: table
         +cluster_by: ["load_date"]
       fact:
