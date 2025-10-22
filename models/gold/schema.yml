@@ -1,0 +1,118 @@
+version: 2
+
+models:
+  - name: go_process_audit
+    description: "Gold layer process audit table for tracking ETL operations"
+    columns:
+      - name: execution_id
+        description: "Unique execution identifier"
+        tests:
+          - unique
+          - not_null
+      - name: pipeline_name
+        description: "Name of the pipeline being executed"
+      - name: process_type
+        description: "Type of process (DIMENSION_LOAD, FACT_LOAD, etc.)"
+      - name: start_time
+        description: "Process start timestamp"
+      - name: end_time
+        description: "Process end timestamp"
+      - name: status
+        description: "Process execution status"
+      - name: records_processed
+        description: "Number of records processed"
+      - name: load_date
+        description: "Data load date"
+      - name: update_date
+        description: "Data update date"
+
+  - name: go_user_dimension
+    description: "Gold layer user dimension table"
+    columns:
+      - name: user_dim_id
+        description: "Surrogate key for user dimension"
+        tests:
+          - unique
+          - not_null
+      - name: user_id
+        description: "Natural key from source system"
+        tests:
+          - not_null
+      - name: user_name
+        description: "User display name"
+      - name: email_address
+        description: "User email address"
+      - name: user_type
+        description: "Type of user account"
+      - name: account_status
+        description: "Current account status"
+      - name: load_date
+        description: "Data load date"
+      - name: update_date
+        description: "Data update date"
+
+  - name: go_organization_dimension
+    description: "Gold layer organization dimension table"
+    columns:
+      - name: organization_dim_id
+        description: "Surrogate key for organization dimension"
+        tests:
+          - unique
+          - not_null
+      - name: organization_id
+        description: "Natural key from source system"
+      - name: organization_name
+        description: "Organization name"
+      - name: load_date
+        description: "Data load date"
+      - name: update_date
+        description: "Data update date"
+
+  - name: go_time_dimension
+    description: "Gold layer time dimension table"
+    columns:
+      - name: time_dim_id
+        description: "Surrogate key for time dimension"
+        tests:
+          - unique
+          - not_null
+      - name: date_key
+        description: "Date value"
+        tests:
+          - unique
+          - not_null
+      - name: year_number
+        description: "Year number"
+      - name: month_number
+        description: "Month number"
+      - name: day_of_week
+        description: "Day of week number"
+      - name: is_weekend
+        description: "Weekend flag"
+
+  - name: go_meeting_facts
+    description: "Gold layer meeting facts table"
+    columns:
+      - name: meeting_fact_id
+        description: "Surrogate key for meeting fact"
+        tests:
+          - unique
+          - not_null
+      - name: meeting_id
+        description: "Natural key from source system"
+        tests:
+          - not_null
+      - name: host_id
+        description: "Meeting host identifier"
+      - name: start_time
+        description: "Meeting start timestamp"
+      - name: duration_minutes
+        description: "Meeting duration in minutes"
+      - name: participant_count
+        description: "Number of participants"
+      - name: engagement_score
+        description: "Calculated engagement score"
+      - name: load_date
+        description: "Data load date"
+      - name: update_date
+        description: "Data update date"
