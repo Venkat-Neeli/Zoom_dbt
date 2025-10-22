@@ -2,7 +2,7 @@
     materialized='incremental',
     unique_key='quality_fact_id',
     on_schema_change='sync_all_columns',
-    pre_hook="INSERT INTO {{ ref('go_process_audit') }} (execution_id, pipeline_name, start_time, status, process_type, user_executed, source_system, target_system) VALUES (UUID_STRING(), 'go_quality_facts_load', CURRENT_TIMESTAMP(), 'STARTED', 'FACT_LOAD', 'DBT_USER', 'SILVER', 'GOLD') WHERE '{{ this.name }}' != 'go_process_audit'",
+    pre_hook="INSERT INTO {{ ref('go_process_audit') }} (execution_id, pipeline_name, start_time, status, process_type, user_executed, source_system, target_system) SELECT UUID_STRING(), 'go_quality_facts_load', CURRENT_TIMESTAMP(), 'STARTED', 'FACT_LOAD', 'DBT_USER', 'SILVER', 'GOLD' WHERE '{{ this.name }}' != 'go_process_audit'",
     post_hook="UPDATE {{ ref('go_process_audit') }} SET end_time = CURRENT_TIMESTAMP(), status = 'COMPLETED', records_processed = (SELECT COUNT(*) FROM {{ this }}) WHERE pipeline_name = 'go_quality_facts_load' AND status = 'STARTED' AND '{{ this.name }}' != 'go_process_audit'"
 ) }}
 
@@ -31,7 +31,7 @@ final_facts AS (
         CONCAT('QF_', meeting_id, '_', participant_id) AS quality_fact_id,
         meeting_id,
         participant_id,
-        CONCAT('DC_', participant_id, '_', CURRENT_TIMESTAMP()::STRING) AS device_connection_id,
+        CONCAT('DC_', participant_id, '_', DATE_PART('epoch', CURRENT_TIMESTAMP())::STRING) AS device_connection_id,
         ROUND(data_quality_score * 0.8, 2) AS audio_quality_score,
         ROUND(data_quality_score * 0.9, 2) AS video_quality_score,
         ROUND(data_quality_score, 2) AS connection_stability_rating,
