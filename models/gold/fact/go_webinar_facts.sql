@@ -2,22 +2,6 @@
     materialized='table'
 ) }}
 
-WITH webinar_base AS (
-    SELECT 
-        webinar_id,
-        host_id,
-        webinar_topic,
-        start_time,
-        end_time,
-        registrants,
-        source_system,
-        load_date,
-        update_date,
-        data_quality_score
-    FROM {{ ref('si_webinars') }}
-    WHERE record_status = 'ACTIVE'
-)
-
 SELECT 
     CONCAT('WF_', webinar_id) AS webinar_fact_id,
     webinar_id,
@@ -37,4 +21,5 @@ SELECT
     load_date,
     CURRENT_DATE() AS update_date,
     source_system
-FROM webinar_base
+FROM {{ ref('si_webinars') }}
+WHERE record_status = 'ACTIVE'
