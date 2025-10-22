@@ -2,7 +2,7 @@
     materialized='incremental',
     unique_key='usage_fact_id',
     on_schema_change='sync_all_columns',
-    pre_hook="INSERT INTO {{ ref('go_process_audit') }} (execution_id, pipeline_name, start_time, status, process_type, user_executed, source_system, target_system) VALUES (UUID_STRING(), 'go_usage_facts_load', CURRENT_TIMESTAMP(), 'STARTED', 'FACT_LOAD', 'DBT_USER', 'SILVER', 'GOLD') WHERE '{{ this.name }}' != 'go_process_audit'",
+    pre_hook="INSERT INTO {{ ref('go_process_audit') }} (execution_id, pipeline_name, start_time, status, process_type, user_executed, source_system, target_system) SELECT UUID_STRING(), 'go_usage_facts_load', CURRENT_TIMESTAMP(), 'STARTED', 'FACT_LOAD', 'DBT_USER', 'SILVER', 'GOLD' WHERE '{{ this.name }}' != 'go_process_audit'",
     post_hook="UPDATE {{ ref('go_process_audit') }} SET end_time = CURRENT_TIMESTAMP(), status = 'COMPLETED', records_processed = (SELECT COUNT(*) FROM {{ this }}) WHERE pipeline_name = 'go_usage_facts_load' AND status = 'STARTED' AND '{{ this.name }}' != 'go_process_audit'"
 ) }}
 
@@ -23,14 +23,14 @@ WITH user_base AS (
 
 feature_usage_daily AS (
     SELECT 
-        usage_date,
+        DATE(usage_date) AS usage_date,
         load_date,
         update_date,
         source_system,
         SUM(usage_count) AS feature_usage_count
     FROM {{ ref('si_feature_usage') }}
     WHERE record_status = 'ACTIVE'
-    GROUP BY usage_date, load_date, update_date, source_system
+    GROUP BY DATE(usage_date), load_date, update_date, source_system
 ),
 
 meeting_stats AS (
@@ -57,12 +57,12 @@ webinar_stats AS (
 
 recording_storage AS (
     SELECT 
-        usage_date,
+        DATE(usage_date) AS usage_date,
         SUM(usage_count) * 0.1 AS recording_storage_gb
     FROM {{ ref('si_feature_usage') }}
     WHERE feature_name = 'Recording'
         AND record_status = 'ACTIVE'
-    GROUP BY usage_date
+    GROUP BY DATE(usage_date)
 ),
 
 participant_stats AS (
