@@ -19,8 +19,20 @@ clean-targets:
 models:
   Zoom_Customer_Analytics:
     +materialized: table
+    bronze:
+      +materialized: view
+    silver:
+      +materialized: incremental
+      +on_schema_change: sync_all_columns
     gold:
+      +materialized: table
       fact:
         +materialized: incremental
         +on_schema_change: sync_all_columns
-        +unique_key: ['load_date']
+        +unique_key: "{{ this.name }}_id"
+      dimensional:
+        +materialized: table
+
+vars:
+  # dbt-date variables
+  "dbt_date:time_zone": "UTC"
