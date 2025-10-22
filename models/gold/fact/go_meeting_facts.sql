@@ -3,10 +3,10 @@
 ) }}
 
 SELECT 
-    CONCAT('MF_', meeting_id) AS meeting_fact_id,
+    meeting_id AS meeting_fact_id,
     meeting_id,
     host_id,
-    COALESCE(meeting_topic, 'No Topic') AS meeting_topic,
+    meeting_topic,
     start_time,
     end_time,
     duration_minutes,
@@ -20,10 +20,9 @@ SELECT
     0 AS screen_share_count,
     0 AS chat_message_count,
     0 AS breakout_room_count,
-    ROUND(data_quality_score, 2) AS quality_score_avg,
+    data_quality_score AS quality_score_avg,
     0.0 AS engagement_score,
     load_date,
-    CURRENT_DATE() AS update_date,
+    update_date,
     source_system
 FROM {{ ref('si_meetings') }}
-WHERE record_status = 'ACTIVE'
