@@ -18,18 +18,10 @@ clean-targets:
 
 models:
   Zoom_Customer_Analytics:
-    +materialized: table
-    bronze:
-      +materialized: view
-    silver:
-      +materialized: incremental
-      +on_schema_change: sync_all_columns
     gold:
       +materialized: table
+      +schema: gold
+      dimension:
+        +materialized: table
       fact:
         +materialized: table
-      dimensional:
-        +materialized: table
-
-vars:
-  "dbt_date:time_zone": "UTC"
