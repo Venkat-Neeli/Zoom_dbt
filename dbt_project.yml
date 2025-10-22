@@ -2,7 +2,7 @@ name: 'Zoom_Customer_Analytics'
 version: '1.0.0'
 config-version: 2
 
-profile: 'Zoom_Customer_Analytics'
+profile: 'zoom_analytics'
 
 model-paths: ["models"]
 analysis-paths: ["analyses"]
@@ -20,17 +20,7 @@ models:
   Zoom_Customer_Analytics:
     +materialized: table
     gold:
-      +materialized: table
       fact:
         +materialized: incremental
         +on_schema_change: sync_all_columns
-        +unique_key: "{{ var('unique_key', 'id') }}"
-    silver:
-      +materialized: incremental
-      +on_schema_change: sync_all_columns
-    bronze:
-      +materialized: table
-
-vars:
-  start_date: '2020-01-01'
-  end_date: '2030-12-31'
+        +unique_key: ['load_date']
