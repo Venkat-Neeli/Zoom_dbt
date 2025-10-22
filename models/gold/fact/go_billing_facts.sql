@@ -2,21 +2,6 @@
     materialized='table'
 ) }}
 
-WITH billing_base AS (
-    SELECT 
-        event_id,
-        user_id,
-        event_type,
-        amount,
-        event_date,
-        source_system,
-        load_date,
-        update_date,
-        data_quality_score
-    FROM {{ ref('si_billing_events') }}
-    WHERE record_status = 'ACTIVE'
-)
-
 SELECT 
     CONCAT('BF_', event_id, '_', user_id) AS billing_fact_id,
     event_id,
@@ -38,4 +23,5 @@ SELECT
     load_date,
     CURRENT_DATE() AS update_date,
     source_system
-FROM billing_base
+FROM {{ ref('si_billing_events') }}
+WHERE record_status = 'ACTIVE'
