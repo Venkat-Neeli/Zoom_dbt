@@ -2,22 +2,6 @@
     materialized='table'
 ) }}
 
-WITH participant_base AS (
-    SELECT 
-        participant_id,
-        meeting_id,
-        user_id,
-        join_time,
-        leave_time,
-        load_date,
-        update_date,
-        source_system,
-        data_quality_score
-    FROM {{ ref('si_participants') }}
-    WHERE record_status = 'ACTIVE'
-        AND data_quality_score >= 0.7
-)
-
 SELECT 
     CONCAT('QF_', meeting_id, '_', participant_id) AS quality_fact_id,
     meeting_id,
@@ -46,4 +30,6 @@ SELECT
     load_date,
     CURRENT_DATE() AS update_date,
     source_system
-FROM participant_base
+FROM {{ ref('si_participants') }}
+WHERE record_status = 'ACTIVE'
+    AND data_quality_score >= 0.7
