@@ -1,8 +1,8 @@
-name: 'Zoom_Customer_Analytics'
+name: 'zoom_customer_analytics'
 version: '1.0.0'
 config-version: 2
 
-profile: 'zoom_analytics'
+profile: 'zoom_customer_analytics'
 
 model-paths: ["models"]
 analysis-paths: ["analyses"]
@@ -17,11 +17,17 @@ clean-targets:
   - "dbt_packages"
 
 models:
-  Zoom_Customer_Analytics:
+  zoom_customer_analytics:
     gold:
       +materialized: table
-      +schema: gold
-      dimension:
+      +cluster_by: ["load_date"]
+      dimensional:
         +materialized: table
+        +cluster_by: ["load_date"]
       fact:
         +materialized: table
+        +cluster_by: ["load_date"]
+
+vars:
+  start_date: '2020-01-01'
+  end_date: '2030-12-31'
