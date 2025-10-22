@@ -27,12 +27,9 @@ models:
     gold:
       +materialized: table
       fact:
-        +materialized: incremental
-        +on_schema_change: sync_all_columns
-        +unique_key: "{{ this.name }}_id"
+        +materialized: table
       dimensional:
         +materialized: table
 
 vars:
-  # dbt-date variables
   "dbt_date:time_zone": "UTC"
