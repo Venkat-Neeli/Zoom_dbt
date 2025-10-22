@@ -1,28 +1,26 @@
 {{ config(
     materialized='table',
-    cluster_by=['start_time', 'pipeline_name'],
-    pre_hook="INSERT INTO {{ this.schema }}.go_process_audit (execution_id, pipeline_name, process_type, start_time, status, source_system, target_system, user_executed, load_date) SELECT UUID_STRING(), 'Gold Layer Transformation', 'DBT_MODEL', CURRENT_TIMESTAMP(), 'STARTED', 'SILVER', 'GOLD', 'DBT_CLOUD', CURRENT_DATE() WHERE '{{ this.name }}' != 'go_process_audit'",
-    post_hook="INSERT INTO {{ this.schema }}.go_process_audit (execution_id, pipeline_name, process_type, start_time, end_time, status, records_processed, source_system, target_system, user_executed, processing_duration_seconds, load_date) SELECT UUID_STRING(), 'Gold Layer Transformation', 'DBT_MODEL', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 'COMPLETED', (SELECT COUNT(*) FROM {{ this }}), 'SILVER', 'GOLD', 'DBT_CLOUD', 0, CURRENT_DATE() WHERE '{{ this.name }}' != 'go_process_audit'"
+    cluster_by=['start_time', 'pipeline_name']
 ) }}
 
--- Gold Process Audit Table
+-- Gold Process Audit Table - Created First Without Dependencies
 WITH audit_base AS (
     SELECT 
         UUID_STRING() AS execution_id,
-        'Initial Load' AS pipeline_name,
-        'SETUP' AS process_type,
+        'Initial Load'::VARCHAR(255) AS pipeline_name,
+        'SETUP'::VARCHAR(100) AS process_type,
         CURRENT_TIMESTAMP() AS start_time,
         CURRENT_TIMESTAMP() AS end_time,
-        'COMPLETED' AS status,
-        NULL AS error_message,
+        'COMPLETED'::VARCHAR(50) AS status,
+        NULL::VARCHAR(2000) AS error_message,
         0 AS records_processed,
         0 AS records_successful,
         0 AS records_failed,
         0 AS processing_duration_seconds,
-        'SYSTEM' AS source_system,
-        'GOLD' AS target_system,
-        'DBT_SETUP' AS user_executed,
-        'DBT_SERVER' AS server_name,
+        'SYSTEM'::VARCHAR(100) AS source_system,
+        'GOLD'::VARCHAR(100) AS target_system,
+        'DBT_SETUP'::VARCHAR(100) AS user_executed,
+        'DBT_SERVER'::VARCHAR(100) AS server_name,
         0 AS memory_usage_mb,
         0.0 AS cpu_usage_percent,
         0.0 AS data_volume_gb,
