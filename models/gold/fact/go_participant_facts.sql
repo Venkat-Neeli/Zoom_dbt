@@ -2,21 +2,6 @@
     materialized='table'
 ) }}
 
-WITH participant_base AS (
-    SELECT 
-        participant_id,
-        meeting_id,
-        user_id,
-        join_time,
-        leave_time,
-        source_system,
-        load_date,
-        update_date,
-        data_quality_score
-    FROM {{ ref('si_participants') }}
-    WHERE record_status = 'ACTIVE'
-)
-
 SELECT 
     CONCAT('PF_', participant_id, '_', meeting_id) AS participant_fact_id,
     meeting_id,
@@ -37,4 +22,5 @@ SELECT
     load_date,
     CURRENT_DATE() AS update_date,
     source_system
-FROM participant_base
+FROM {{ ref('si_participants') }}
+WHERE record_status = 'ACTIVE'
