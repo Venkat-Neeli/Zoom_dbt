@@ -1,0 +1,199 @@
+version: 2
+
+models:
+  - name: go_process_audit
+    description: "Gold layer process audit table for tracking ETL operations"
+    columns:
+      - name: execution_id
+        description: "Unique execution identifier"
+        tests:
+          - not_null
+      - name: pipeline_name
+        description: "Name of the pipeline being executed"
+      - name: process_type
+        description: "Type of process (DBT_MODEL, etc.)"
+      - name: start_time
+        description: "Process start timestamp"
+      - name: end_time
+        description: "Process end timestamp"
+      - name: status
+        description: "Process execution status"
+      - name: records_processed
+        description: "Number of records processed"
+      - name: source_system
+        description: "Source system identifier"
+      - name: target_system
+        description: "Target system identifier"
+      - name: load_date
+        description: "Load date"
+
+  - name: go_user_dimension
+    description: "Gold layer user dimension table"
+    columns:
+      - name: user_dim_id
+        description: "Surrogate key for user dimension"
+        tests:
+          - not_null
+          - unique
+      - name: user_id
+        description: "Business key - user identifier"
+        tests:
+          - not_null
+      - name: user_name
+        description: "User display name"
+      - name: email_address
+        description: "User email address"
+      - name: user_type
+        description: "User subscription type"
+      - name: account_status
+        description: "User account status"
+      - name: license_type
+        description: "User license type"
+
+  - name: go_organization_dimension
+    description: "Gold layer organization dimension table"
+    columns:
+      - name: organization_dim_id
+        description: "Surrogate key for organization dimension"
+        tests:
+          - not_null
+          - unique
+      - name: organization_id
+        description: "Business key - organization identifier"
+      - name: organization_name
+        description: "Organization name"
+
+  - name: go_time_dimension
+    description: "Gold layer time dimension table"
+    columns:
+      - name: time_dim_id
+        description: "Surrogate key for time dimension"
+        tests:
+          - not_null
+          - unique
+      - name: date_key
+        description: "Date key"
+        tests:
+          - not_null
+      - name: year_number
+        description: "Year number"
+      - name: month_number
+        description: "Month number"
+      - name: day_name
+        description: "Day name"
+
+  - name: go_device_dimension
+    description: "Gold layer device dimension table"
+    columns:
+      - name: device_dim_id
+        description: "Surrogate key for device dimension"
+        tests:
+          - not_null
+          - unique
+      - name: device_type
+        description: "Device type"
+      - name: operating_system
+        description: "Operating system"
+
+  - name: go_geography_dimension
+    description: "Gold layer geography dimension table"
+    columns:
+      - name: geography_dim_id
+        description: "Surrogate key for geography dimension"
+        tests:
+          - not_null
+          - unique
+      - name: country_code
+        description: "Country code"
+      - name: country_name
+        description: "Country name"
+
+  - name: go_meeting_facts
+    description: "Gold layer meeting facts table"
+    columns:
+      - name: meeting_fact_id
+        description: "Surrogate key for meeting facts"
+        tests:
+          - not_null
+          - unique
+      - name: meeting_id
+        description: "Business key - meeting identifier"
+        tests:
+          - not_null
+      - name: host_id
+        description: "Meeting host identifier"
+      - name: duration_minutes
+        description: "Meeting duration in minutes"
+      - name: participant_count
+        description: "Number of participants"
+      - name: engagement_score
+        description: "Meeting engagement score"
+
+  - name: go_participant_facts
+    description: "Gold layer participant facts table"
+    columns:
+      - name: participant_fact_id
+        description: "Surrogate key for participant facts"
+        tests:
+          - not_null
+          - unique
+      - name: meeting_id
+        description: "Associated meeting identifier"
+      - name: participant_id
+        description: "Participant identifier"
+      - name: attendance_duration
+        description: "Participant attendance duration"
+
+  - name: go_webinar_facts
+    description: "Gold layer webinar facts table"
+    columns:
+      - name: webinar_fact_id
+        description: "Surrogate key for webinar facts"
+        tests:
+          - not_null
+          - unique
+      - name: webinar_id
+        description: "Business key - webinar identifier"
+      - name: attendance_rate
+        description: "Webinar attendance rate"
+
+  - name: go_billing_facts
+    description: "Gold layer billing facts table"
+    columns:
+      - name: billing_fact_id
+        description: "Surrogate key for billing facts"
+        tests:
+          - not_null
+          - unique
+      - name: event_id
+        description: "Billing event identifier"
+      - name: amount
+        description: "Billing amount"
+
+  - name: go_usage_facts
+    description: "Gold layer usage facts table"
+    columns:
+      - name: usage_fact_id
+        description: "Surrogate key for usage facts"
+        tests:
+          - not_null
+          - unique
+      - name: user_id
+        description: "User identifier"
+      - name: usage_date
+        description: "Usage date"
+
+  - name: go_quality_facts
+    description: "Gold layer quality facts table"
+    columns:
+      - name: quality_fact_id
+        description: "Surrogate key for quality facts"
+        tests:
+          - not_null
+          - unique
+      - name: meeting_id
+        description: "Associated meeting identifier"
+      - name: audio_quality_score
+        description: "Audio quality score"
+      - name: video_quality_score
+        description: "Video quality score"
